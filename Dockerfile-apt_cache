@@ -1,0 +1,13 @@
+FROM        ubuntu
+
+VOLUME      ["/var/cache/apt-cacher-ng"]
+RUN set -eux;\
+    apt-get update;\
+    apt-get install -y --no-install-recommends  apt-cacher-ng;\
+    apt-get clean; rm -rf /var/lib/apt/lists/*;
+
+EXPOSE      3142
+CMD set -eux;\
+    chown apt-cacher-ng:apt-cacher-ng /var/cache/apt-cacher-ng;\
+    /etc/init.d/apt-cacher-ng start;\
+    exec tail -f /var/log/apt-cacher-ng/*
