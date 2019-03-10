@@ -1,4 +1,4 @@
-VOLUME_DIR?=/data/docker
+VOLUME_DIR?=/data
 
 apt_cache.container:
 	-docker kill $(basename $@)
@@ -21,16 +21,48 @@ apt_cache.stop:
 	-docker kill $(basename $@)
 	-docker rm $(basename $@)
 
-debootstrap.run:
+debootstrap_packages_essential=$(shell cat essential.lst)
+debootstrap_packages_core=$(shell cat core-packages.lst)
+
+debootstrap.test:
+	echo $($(basename $@)_packages)
+
+debootstrap.container:
 	docker build --build-arg HTTP_PROXY=${http_proxy} -f Dockerfile-$(basename $@) -t $(basename $@) .
-	docker run --userns=host --cap-add=SYS_ADMIN --security-opt apparmor:unconfined -e http_proxy=${http_proxy} -v $(basename $@):/chroot --rm -it $(basename $@) bash -c \
+
+debootstrap.init: debootstrap.container
+	docker run --userns=host --cap-add=SYS_ADMIN --security-opt apparmor:unconfined  -e http_proxy=${http_proxy} -v $(basename $@):/chroot --rm -it $(basename $@) bash -c \
 	'debootstrap --variant=minbase --arch=amd64 bionic /chroot http://archive.ubuntu.com/ubuntu/'
+	docker run --userns=host -v /proc:/chroot/proc:ro -e http_proxy=${http_proxy} -v $(basename $@):/chroot -it --rm $(basename $@) chroot /chroot /bin/bash -c \
+	'set -eux; apt-get update; apt-get install -y $($(basename $@)_packages_core);'
 	docker run --userns=host -e http_proxy=${http_proxy} -v $(basename $@):/chroot -it --rm $(basename $@) chroot /chroot /bin/bash -c \
-	'set -eux; apt-get update; apt-get install -y make net-tools wpasupplicant wget; apt-get install -y apt-transport-https ca-certificates  curl  gnupg-agent software-properties-common'
+	'apt-get install --no-install-recommends -y $($(basename $@)_packages_essential)'
+
+debootstrap.run:
+	docker run --userns=host -e http_proxy=${http_proxy} -v $(basename $@):/chroot -it --rm $(basename $@) chroot /chroot /bin/bash -i
+
+debootstrap.overlay_run:
+	docker run --userns=host -e http_proxy=${http_proxy} -v $(basename $@).overlay:/chroot -it --rm $(basename $@) chroot /chroot /bin/bash -i
 
 debootstrap.docker:
 	cat docker.sh | docker run --userns=host -e http_proxy=${http_proxy} -v $(basename $@).overlay:/chroot -i --rm $(basename $@) bash -c \
 	'chroot /chroot /bin/bash'
+
+debootstrap.user:
+	cat docker.sh | docker run --userns=host -e http_proxy=${http_proxy} -v $(basename $@).overlay:/chroot -i --rm $(basename $@)  chroot /chroot /bin/bash -c \
+	'set -eux;(echo ubuntu;echo ubuntu)|passwd;echo "/dev/root / ext3 rw,noatime 0 1" >/etc/fstab'
+
+debootstrap_image=image.qcow
+
+debootstrap.image: debootstrap.container
+	truncate --size=0 touch $($(basename $@)_image)
+	docker run --userns=host -v $(shell pwd)/$($(basename $@)_image):/$($(basename $@)_image) -v $(basename $@).overlay:/chroot --rm -it $(basename $@) bash -c \
+	'set -eux; env LIBGUESTFS_DEBUG=0 LIBGUESTFS_TRACE=0 virt-make-fs --format=qcow2 --size=2G --type=ext3 /chroot /$($(basename $@)_image)'
+
+debootstrap.qemu:
+	docker run --userns=host -v /boot:/boot:ro -v $(shell pwd)/$($(basename $@)_image):/$($(basename $@)_image) --rm -it $(basename $@) bash -c \
+	'set -eux;qemu-system-x86_64 -curses -append "root=/dev/sda systemd.log_target=kmsg systemd.log_level=debug" -kernel /boot/vmlinuz* -initrd /boot/initrd.* -hda /$($(basename $@)_image) -m 1024 -net user'
+	#'set -eux;qemu-system-x86_64 -nographic -append "root=/dev/sda console=ttyS0" -kernel /boot/vmlinuz* -initrd /boot/initrd.* -hda /$($(basename $@)_image) -m 1024 -net user'
 
 debootstrap.volume:
 	-docker volume rm $(basename $@)

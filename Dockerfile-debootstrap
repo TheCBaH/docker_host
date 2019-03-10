@@ -2,6 +2,10 @@ FROM ubuntu
 RUN set -eux;\
     export http_proxy=$HTTP_PROXY; \
     apt-get update;\
-    apt-get install -y debootstrap;\
-    apt-get clean; rm -rf /var/lib/apt/lists/*;
+    env DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -yq \
+ debootstrap \
+ libguestfs-tools \
+ linux-image-generic \
+ qemu-utils \
+ ;apt-get clean; rm -rf /var/lib/apt/lists/*;
 

@@ -1,0 +1,5 @@
+.git/
+Docker*
+Make*
+*.lst
+image*

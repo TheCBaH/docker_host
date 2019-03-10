@@ -1,0 +1,10 @@
+iputils-ping
+less
+make
+net-tools
+strace
+sudo
+sysstat
+vim-tiny
+wget
+wpasupplicant
