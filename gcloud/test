@@ -1,0 +1,37 @@
+#!/bin/bash
+set -eux
+
+cleanup () {
+    gcloud compute instances list --uri|awk -F / '{print $11}'|xargs --no-run-if-empty -n 1 gcloud --verbosity info compute instances delete --quiet
+}
+echo cleanup
+echo trap cleanup EXIT
+gcloud --verbosity info compute instances create --image-project ubuntu-os-cloud  --image-family ubuntu-minimal-1804-lts --machine-type f1-micro test
+echo gcloud compute instances describe test
+for t in $(seq -s ' ' 1 10); do
+   if gcloud compute ssh test -- id ; then
+       break
+   fi
+   sleep 5
+done
+gcloud compute ssh test -- sudo bash <<"_EOF_"
+set -eux
+dd if=/dev/zero of=/swapfile bs=1M count=512
+mkswap /swapfile;chown 0600 /swapfile
+swapon -f /swapfile
+apt-get update
+apt-get install -y --no-install-recommends apt-utils
+apt-get install -y --no-install-recommends \
+ docker.io\
+ git-core\
+ make\
+;
+usermod -aG docker $SUDO_USER
+_EOF_
+gcloud compute ssh test -- bash <<_EOF_
+set -eux
+git clone https://github.com/TheCBaH/aosp-builder.git
+_EOF_
+gcloud compute ssh test -- sudo dd if=/dev/sda of=/dev/null bs=1M count=1024
+gcloud compute ssh test -- lsblk -m
+echo gcloud --verbosity info compute instances stop test

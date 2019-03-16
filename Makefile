@@ -1,4 +1,9 @@
 VOLUME_DIR?=/data
+ID_OFFSET:=$(shell id -u docker 2</dev/null || echo 0)
+UID:=$(shell expr $$(id -u) - ${ID_OFFSET})
+GID:=$(shell expr $$(id -g) - ${ID_OFFSET})
+USER:=$(shell id -un)
+WORKSPACE=$(shell pwd)
 
 apt_cache.container:
 	-docker kill $(basename $@)
@@ -76,6 +81,14 @@ debootstrap.volume_overlay:
 	docker volume create --driver local --opt type=overlay \
 		--opt o='lowerdir=${VOLUME_DIR}/$(basename $@),upperdir=${VOLUME_DIR}/$(basename $@).overlay,workdir=${VOLUME_DIR}/$(basename $@).workdir' --opt device=overlay $(basename $@).overlay
 
-aws.run:
-	docker build --build-arg HTTP_PROXY=${http_proxy} -f Dockerfile-$(basename $@) -t $(basename $@) .
-	docker run --rm -it -v ~/.aws:/root/.aws:ro $(basename $@)
+%.image:
+	docker build --build-arg userid=${UID} --build-arg groupid=${GID} --build-arg username=${USER} --build-arg HTTP_PROXY=${http_proxy} -f Dockerfile-$(basename $@) -t $(basename $@) .
+
+gcloud.run: gcloud.image
+	docker run --rm -it -v ~/.ssh:/home/${USER}/.ssh -v ~/.config/gcloud:/home/${USER}/.config/gcloud $(basename $@)
+
+%.gcloud:
+	docker run --rm -it -v ${WORKSPACE}:/workspace:ro -v ~/.ssh:/home/${USER}/.ssh -v ~/.config/gcloud:/home/${USER}/.config/gcloud gcloud run /workspace/gcloud/$(basename $@)
+
+aws.run: aws.image
+	docker run --rm -it -v ~/.aws:/home/${USER}/.aws $(basename $@)

@@ -9,3 +9,17 @@ RUN set -eux;\
 RUN set -eux;\
     pip3 install awscli --upgrade;\
     echo DONE
+
+ARG userid
+ARG groupid
+ARG username
+COPY entrypoint.sh /root/
+RUN set -eux; \
+    groupadd -g $groupid $username; \
+    useradd -m -u $userid -g $groupid $username; \
+    usermod -aG sudo $username; \
+    echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers; \
+    echo $username >/root/username; \
+    echo DONE
+ENTRYPOINT ["/root/entrypoint.sh"]
+CMD ["run", "bash", "-l"]

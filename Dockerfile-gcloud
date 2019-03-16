@@ -1,0 +1,44 @@
+FROM        ubuntu
+RUN set -eux;\
+    export http_proxy=$HTTP_PROXY; \
+    apt-get update;\
+    apt-get install -y --no-install-recommends\
+ apt-utils\
+ ca-certificates\
+ curl\
+ gnupg\
+ less\
+ lsb-release\
+ openssh-client\
+ sudo\
+ vim-tiny\
+    ; \
+    apt-get install -y --no-install-recommends\
+ libpython-stdlib\
+ python\
+ python-crcmod\
+    ; \
+    apt-get clean; rm -rf /var/lib/apt/lists/*;\
+    echo DONE
+
+RUN set -eux;\
+    export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)";\
+    echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list;\
+    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -;\
+    env -u http_proxy apt-get update;  env -u http_proxy apt-get install -y --no-install-recommends google-cloud-sdk;\
+    apt-get clean; rm -rf /var/lib/apt/lists/*;\
+    echo DONE
+
+ARG userid
+ARG groupid
+ARG username
+COPY entrypoint.sh /root/
+RUN set -eux; \
+    groupadd -g $groupid $username; \
+    useradd -m -u $userid -g $groupid $username; \
+    usermod -aG sudo $username; \
+    echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers; \
+    echo $username >/root/username; \
+    echo DONE
+ENTRYPOINT ["/root/entrypoint.sh"]
+CMD ["run", "bash", "-l"]

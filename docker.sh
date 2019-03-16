@@ -2,8 +2,8 @@ set -eux
 deluser uucp
 delgroup uucp || true
 DOCKER_ID=10
-echo 'docker:10:65536' >>/etc/subuid
-echo 'docker:10:65536' >>/etc/subgid
+echo "docker:${DOCKER_ID}:65536" >>/etc/subuid
+echo "docker:${DOCKER_ID}:65536" >>/etc/subgid
 mkdir -p /etc/docker
 cat > /etc/docker/daemon.json <<_EOF_
 {
