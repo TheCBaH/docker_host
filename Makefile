@@ -4,6 +4,7 @@ UID:=$(shell expr $$(id -u) - ${ID_OFFSET})
 GID:=$(shell expr $$(id -g) - ${ID_OFFSET})
 USER:=$(shell id -un)
 WORKSPACE=$(shell pwd)
+TERMINAL:=$(shell test -t 0 && echo t)
 
 apt_cache.container:
 	-docker kill $(basename $@)
@@ -85,7 +86,7 @@ debootstrap.volume_overlay:
 	docker build --build-arg userid=${UID} --build-arg groupid=${GID} --build-arg username=${USER} --build-arg HTTP_PROXY=${http_proxy} -f Dockerfile-$(basename $@) -t $(basename $@) .
 
 gcloud.run: gcloud.image
-	docker run --rm -it -v ~/.ssh:/home/${USER}/.ssh -v ~/.config/gcloud:/home/${USER}/.config/gcloud $(basename $@)
+	docker run --rm -i${TERMINAL} -v ~/.ssh:/home/${USER}/.ssh -v ~/.config/gcloud:/home/${USER}/.config/gcloud $(basename $@) ${GCLOUD_CMD}
 
 %.gcloud:
 	docker run --rm -it -v ${WORKSPACE}:/workspace:ro -v ~/.ssh:/home/${USER}/.ssh -v ~/.config/gcloud:/home/${USER}/.config/gcloud gcloud run /workspace/gcloud/$(basename $@)

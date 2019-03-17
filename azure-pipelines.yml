@@ -1,0 +1,33 @@
+# https://aka.ms/yaml
+
+trigger:
+- master
+- devel
+
+jobs:
+  - job:  master
+    pool:
+        vmImage: 'Ubuntu-16.04'
+
+    variables:
+        system.debug: 'false'
+
+    displayName: 'Docker'
+    timeoutInMinutes: 120
+    steps:
+        - script: |
+            set -eux
+            mkdir -p /tmp/data/apt_cache
+            make VOLUME_DIR=/tmp/data apt_cache.volume
+            make apt_cache.container
+            sudo env http_proxy=http://localhost:3142  apt-get install -y --download-only ocaml-base-nox
+            make apt_cache.logs
+            make apt_cache.stop
+          displayName: 'apt-cache'
+
+        - script: |
+            set -eux
+            make gcloud.image
+            mkdir -p ~/.config/gcloud
+            echo n | make gcloud.run TERMINAL= GCLOUD_CMD='run gcloud init'
+          displayName: 'GCloud'
