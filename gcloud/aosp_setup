@@ -1,0 +1,47 @@
+#!/bin/bash
+set -eux
+
+instance=aosp-prepare-builder
+disk=aosp-builder
+cleanup () {
+   gcloud --verbosity info compute instances delete --quiet ${instance} || true
+}
+cleanup
+trap cleanup EXIT
+gcloud --verbosity info compute disks delete ${disk} --quiet || true
+gcloud --verbosity info compute disks create --size=10GB --image-project ubuntu-os-cloud  --image-family ubuntu-1804-lts ${disk}
+gcloud --verbosity info compute instances create --no-restart-on-failure --machine-type f1-micro --disk=boot=yes,name=${disk} ${instance}
+for t in $(seq -s ' ' 1 10); do
+   if gcloud compute ssh ${instance} -- id ; then
+       break
+   fi
+   sleep 5
+done
+gcloud compute ssh ${instance} -- sudo bash <<"_EOF_"
+set -eux
+dd if=/dev/zero of=/swapfile bs=1M count=512
+chmod 0600 /swapfile
+mkswap /swapfile
+swapon -f /swapfile
+echo '/swapfile  swap swap       defaults        0       0' >>/etc/fstab
+apt-get update
+apt-get install -y --no-install-recommends apt-utils
+apt-get install -y --no-install-recommends \
+ docker.io\
+ git-core\
+ less\
+ make\
+ sysstat\
+ vim-tiny\
+;
+usermod -aG docker $SUDO_USER
+_EOF_
+gcloud compute ssh ${instance} -- bash <<_EOF_
+set -eux
+git clone https://github.com/TheCBaH/aosp-builder.git
+cd aosp-builder
+git config --global user.name $USER
+git config --global user.email "$USER@gmail.com"
+make user
+_EOF_
+gcloud compute ssh ${instance} -- sudo halt -p || true
