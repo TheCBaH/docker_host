@@ -1,0 +1,41 @@
+#!/bin/bash
+set -eux
+
+instance=aosp-prepare-mirror
+disk=aosp-builder
+disk_mirror=aosp-mirror
+cleanup () {
+   gcloud --verbosity info compute instances delete --quiet ${instance} || true
+}
+cleanup
+trap cleanup EXIT
+gcloud --verbosity info compute disks delete --quiet ${disk_mirror} || true
+gcloud --verbosity info compute disks create --size=34G ${disk_mirror}
+gcloud --verbosity info compute instances create --no-restart-on-failure --disk=boot=yes,name=${disk} --disk=name=${disk_mirror} --machine-type g1-small ${instance}
+for t in $(seq -s ' ' 1 10); do
+   if gcloud compute ssh ${instance} -- id ; then
+       break
+   fi
+   sleep 5
+done
+gcloud compute ssh ${instance} -- sudo bash <<"_EOF_"
+set -eux
+mkdir -p /data/aosp
+mkfs.ext4 -m 0 -F  -O ^has_journal   /dev/sdb
+mount -o noatime /dev/sdb /data/aosp
+_EOF_
+gcloud compute ssh ${instance} -- bash <<_EOF_
+set -eux
+rm -rf aosp-builder
+git clone https://github.com/TheCBaH/aosp-builder.git
+cd aosp-builder
+sudo chown ${USER} /data/aosp
+mkdir -p /data/aosp/source /data/aosp/source.root
+make master.mirror-root-volume master.mirror-root  </dev/null
+make master.mirror-volume master.mirror </dev/null
+_EOF_
+gcloud compute ssh ${instance} -- sudo bash <<_EOF_
+set -eux
+sudo umount /data/aosp
+_EOF_
+gcloud compute ssh ${instance} -- sudo halt -p || true

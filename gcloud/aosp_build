@@ -1,0 +1,56 @@
+#!/bin/bash
+set -eux
+instance=aosp-build
+disk=aosp-builder
+disk_mirror=aosp-mirror
+disk_source_root=aosp-source-root
+disk_source=aosp-source
+disk_out=aosp-aout
+disk_ccache=aosp-ccache
+#machine_type="--machine-type f1-micro"
+machine_type="--custom-cpu 8 --custom-memory 10"
+cleanup () {
+   gcloud --verbosity info compute instances delete --quiet ${instance} || true
+}
+cleanup
+trap cleanup EXIT
+gcloud --verbosity info compute disks delete --quiet ${disk_out} || true
+gcloud --verbosity info compute disks create --size=80G ${disk_out}
+gcloud --verbosity info compute instances create --no-restart-on-failure --disk=boot=yes,name=${disk} --disk=name=${disk_mirror} --disk=name=${disk_source_root},mode=ro --disk=name=${disk_source} --disk=name=${disk_out} --disk=name=${disk_ccache} ${machine_type} ${instance}
+for t in $(seq -s ' ' 1 10); do
+   if gcloud compute ssh ${instance} -- id ; then
+       break
+   fi
+   sleep 5
+done
+gcloud compute ssh ${instance} -- sudo bash <<"_EOF_"
+set -eux
+mkdir -p /data/aosp
+mount -o noatime /dev/sdb /data/aosp
+mount --read-only /dev/sdc /data/aosp/source.root
+mount -o noatime /dev/sdd /data/aosp/source
+mkfs.ext4 -m 0 -F -O ^has_journal  /dev/sde
+mkdir -p /data/aosp/out
+mount -o noatime /dev/sde /data/aosp/out
+mkdir -p /data/aosp/out/aosp_ccache
+mount -o noatime /dev/sdf /data/aosp/out/aosp_ccache
+_EOF_
+gcloud compute ssh ${instance} -- bash <<_EOF_
+set -eux
+rm -rf aosp-builder
+git clone https://github.com/TheCBaH/aosp-builder.git
+cd aosp-builder
+sudo chown ${USER} /data/aosp/out
+make volumes
+make pie-release.aosp_x86-userdebug.build </dev/null
+df -h
+_EOF_
+gcloud compute ssh ${instance} -- sudo bash <<_EOF_
+set -eux
+sudo umount /data/aosp/out/ccache
+sudo umount /data/aosp/out
+sudo umount /data/aosp/source
+sudo umount /data/aosp/source.root
+sudo umount /data/aosp
+_EOF_
+gcloud compute ssh ${instance} -- sudo halt -p || true

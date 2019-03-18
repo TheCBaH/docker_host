@@ -1,0 +1,47 @@
+#!/bin/bash
+set -eux
+instance=aosp-prepare-source
+disk=aosp-builder
+disk_mirror=aosp-mirror
+disk_source_root=aosp-source-root
+disk_source=aosp-source
+cleanup () {
+   gcloud --verbosity info compute instances delete --quiet ${instance} || true
+}
+cleanup
+trap cleanup EXIT
+gcloud --verbosity info compute disks delete --quiet ${disk_source} || true
+gcloud --verbosity info compute disks create --size=10G ${disk_source}
+gcloud --verbosity info compute instances create --no-restart-on-failure --disk=boot=yes,name=${disk} --disk=name=${disk_mirror} --disk=name=${disk_source_root},mode=ro  --disk=name=${disk_source} --machine-type f1-micro ${instance}
+for t in $(seq -s ' ' 1 10); do
+   if gcloud compute ssh ${instance} -- id ; then
+       break
+   fi
+   sleep 5
+done
+gcloud compute ssh ${instance} -- sudo bash <<"_EOF_"
+set -eux
+mkdir -p /data/aosp
+mount -o noatime /dev/sdb /data/aosp
+mount --read-only /dev/sdc /data/aosp/source.root
+mkfs.ext4 -m 0 -F  -O ^has_journal   /dev/sdd
+mount -o noatime /dev/sdd /data/aosp/source
+_EOF_
+gcloud compute ssh ${instance} -- bash <<_EOF_
+set -eux
+rm -rf aosp-builder
+git clone https://github.com/TheCBaH/aosp-builder.git
+cd aosp-builder
+sudo chown ${USER} /data/aosp/source
+make master.source-volume master.source </dev/null
+make pie-dev.source-volume pie-dev.source </dev/null
+make pie-release.source-volume pie-release.source </dev/null
+make oreo-dev.source-volume oreo-dev.source </dev/null
+_EOF_
+gcloud compute ssh ${instance} -- sudo bash <<_EOF_
+set -eux
+sudo umount /data/aosp/source
+sudo umount /data/aosp/source.root
+sudo umount /data/aosp
+_EOF_
+gcloud compute ssh ${instance} -- sudo halt -p || true

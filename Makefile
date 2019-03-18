@@ -89,7 +89,7 @@ gcloud.run: gcloud.image
 	docker run --rm -i${TERMINAL} -v ~/.ssh:/home/${USER}/.ssh -v ~/.config/gcloud:/home/${USER}/.config/gcloud $(basename $@) ${GCLOUD_CMD}
 
 %.gcloud:
-	docker run --rm -it -v ${WORKSPACE}:/workspace:ro -v ~/.ssh:/home/${USER}/.ssh -v ~/.config/gcloud:/home/${USER}/.config/gcloud gcloud run /workspace/gcloud/$(basename $@)
+	docker run --name gcloud-${basename $@} --rm -it -v ${WORKSPACE}:/workspace:ro -v ~/.ssh:/home/${USER}/.ssh -v ~/.config/gcloud:/home/${USER}/.config/gcloud gcloud run /workspace/gcloud/$(basename $@)
 
 aws.run: aws.image
 	docker run --rm -it -v ~/.aws:/home/${USER}/.aws $(basename $@)
