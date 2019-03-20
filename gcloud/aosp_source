@@ -10,7 +10,8 @@ cleanup () {
 }
 cleanup
 trap cleanup EXIT
-gcloud --verbosity info compute disks create --size=32G ${disk_source}
+gcloud --verbosity info compute disks delete --quiet ${disk_source} || true
+gcloud --verbosity info compute disks create --size=10G ${disk_source}
 gcloud --verbosity info compute instances create --no-restart-on-failure --disk=boot=yes,name=${disk} --disk=name=${disk_mirror} --disk=name=${disk_source_root},mode=ro  --disk=name=${disk_source} --machine-type f1-micro ${instance}
 for t in $(seq -s ' ' 1 10); do
    if gcloud compute ssh ${instance} -- id ; then
@@ -32,9 +33,10 @@ rm -rf aosp-builder
 git clone https://github.com/TheCBaH/aosp-builder.git
 cd aosp-builder
 sudo chown ${USER} /data/aosp/source
-make SYNC_JOBS=1 master.source-volume master.source </dev/null
-make SYNC_JOBS=1 pie-dev.source-volume pie-dev.source </dev/null
-sleep 600
+make master.source-volume master.source </dev/null
+make pie-dev.source-volume pie-dev.source </dev/null
+make pie-release.source-volume pie-release.source </dev/null
+make oreo-dev.source-volume oreo-dev.source </dev/null
 _EOF_
 gcloud compute ssh ${instance} -- sudo bash <<_EOF_
 set -eux

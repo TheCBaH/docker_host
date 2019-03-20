@@ -35,7 +35,6 @@ make master.source-root-volume master.source.root </dev/null
 make pie-dev.source-root-volume pie-dev.source.root </dev/null
 make pie-release.source-root-volume pie-release.source.root </dev/null
 make oreo-dev.source-root-volume oreo-dev.source.root </dev/null
-sleep 600
 _EOF_
 gcloud compute ssh ${instance} -- sudo bash <<_EOF_
 set -eux
