@@ -8,7 +8,7 @@ disk_source=aosp-source
 disk_out=aosp-aout
 disk_ccache=aosp-ccache
 #machine_type="--machine-type f1-micro"
-machine_type="--custom-cpu 8 --custom-memory 14"
+machine_type="--custom-cpu 8 --custom-memory 10"
 cleanup () {
    gcloud --verbosity info compute instances delete --quiet ${instance} || true
 }
@@ -47,6 +47,7 @@ df -h
 _EOF_
 gcloud compute ssh ${instance} -- sudo bash <<_EOF_
 set -eux
+sudo umount /data/aosp/out/ccache
 sudo umount /data/aosp/out
 sudo umount /data/aosp/source
 sudo umount /data/aosp/source.root
