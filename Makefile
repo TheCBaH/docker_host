@@ -93,3 +93,18 @@ gcloud.run: gcloud.image
 
 aws.run: aws.image
 	docker run --rm -it -v ~/.aws:/home/${USER}/.aws $(basename $@)
+
+tensorflow.image:
+	#cd tensorflow;docker build --build-arg userid=${UID} --build-arg groupid=${GID} --build-arg username=${USER} --build-arg HTTP_PROXY=${http_proxy} -f devel-cpu.Dockerfile -t $(basename $@) .
+	docker build --build-arg userid=${UID} --build-arg groupid=${GID} --build-arg username=${USER} --build-arg HTTP_PROXY=${http_proxy} -f tensorflow/Dockerfile-tensorflow-rocm -t $(basename $@) .
+
+tensorflow.run:
+	#docker run -it --rm -u ${UID}:${GID} -e HOME=${HOME} -e USER=${USER} -v ${HOME}:${HOME} ${basename $@}
+	docker run --cap-add=SYS_PTRACE  -it  --rm --device=/dev/kfd --device=/dev/dri --group-add sudo --group-add 34 -u ${UID}:${GID} -e HOME=${HOME} -e USER=${USER} -v ${HOME}:${HOME} ${basename $@}
+
+
+pytorch.image:
+	docker build --build-arg userid=${UID} --build-arg groupid=${GID} --build-arg username=${USER} --build-arg HTTP_PROXY=${http_proxy} -f pytorch/Dockerfile-pytorch-rocm -t $(basename $@) .
+
+pytorch.run:
+	 docker run --cap-add=SYS_PTRACE  -it  --rm --device=/dev/kfd --device=/dev/dri --group-add sudo --group-add 34 -u ${UID}:${GID} -e HOME=${HOME} -e USER=${USER} -v ${HOME}:${HOME} ${basename $@}

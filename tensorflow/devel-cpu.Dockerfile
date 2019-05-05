@@ -23,7 +23,7 @@ ARG UBUNTU_VERSION=16.04
 
 FROM ubuntu:${UBUNTU_VERSION} AS base
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN export http_proxy=$HTTP_PROXY && apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         curl \
         git \
@@ -59,9 +59,11 @@ ARG PIP=pip${_PY_SUFFIX}
 # See http://bugs.python.org/issue19846
 ENV LANG C.UTF-8
 
-RUN apt-get update && apt-get install -y \
+RUN export http_proxy=$HTTP_PROXY && apt-get update && apt-get install -y \
     ${PYTHON} \
-    ${PYTHON}-pip
+    ${PYTHON}-pip && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN ${PIP} --no-cache-dir install --upgrade \
     pip \
@@ -70,14 +72,16 @@ RUN ${PIP} --no-cache-dir install --upgrade \
 # Some TF tools expect a "python" binary
 RUN ln -s $(which ${PYTHON}) /usr/local/bin/python 
 
-RUN apt-get update && apt-get install -y \
+RUN export http_proxy=$HTTP_PROXY && apt-get update && apt-get install -y \
     build-essential \
     curl \
     git \
     wget \
     openjdk-8-jdk \
     ${PYTHON}-dev \
-    swig
+    swig && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN ${PIP} --no-cache-dir install \
     Pillow \
@@ -94,9 +98,9 @@ RUN ${PIP} --no-cache-dir install \
     enum34
 
 # Install bazel
-ARG BAZEL_VERSION=0.24.1
+ARG BAZEL_VERSION=0.19.2
 RUN mkdir /bazel && \
-    wget -O /bazel/installer.sh "https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VERSION}/bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh" && \
+    wget --progress dot:mega -O /bazel/installer.sh "https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VERSION}/bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh" && \
     wget -O /bazel/LICENSE.txt "https://raw.githubusercontent.com/bazelbuild/bazel/master/LICENSE" && \
     chmod +x /bazel/installer.sh && \
     /bazel/installer.sh && \
@@ -104,3 +108,19 @@ RUN mkdir /bazel && \
 
 COPY bashrc /etc/bash.bashrc
 RUN chmod a+rwx /etc/bash.bashrc
+
+ARG userid
+ARG groupid
+ARG username
+RUN set -eux; \
+    export http_proxy=$HTTP_PROXY && apt-get update && apt-get install -y \
+    less \
+    sudo; \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*; \
+    groupadd -g $groupid $username; \
+    useradd -m -u $userid -g $groupid $username; \
+    usermod -aG sudo $username; \
+    echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers; \
+    echo $username >/root/username; \
+    echo DONE
