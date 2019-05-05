@@ -23,7 +23,7 @@ ARG UBUNTU_VERSION=16.04
 
 FROM ubuntu:${UBUNTU_VERSION} AS base
 
-RUN export http_proxy=$HTTP_PROXY && apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         curl \
         git \
@@ -59,7 +59,7 @@ ARG PIP=pip${_PY_SUFFIX}
 # See http://bugs.python.org/issue19846
 ENV LANG C.UTF-8
 
-RUN export http_proxy=$HTTP_PROXY && apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y \
     ${PYTHON} \
     ${PYTHON}-pip && \
     apt-get clean && \
@@ -72,7 +72,7 @@ RUN ${PIP} --no-cache-dir install --upgrade \
 # Some TF tools expect a "python" binary
 RUN ln -s $(which ${PYTHON}) /usr/local/bin/python 
 
-RUN export http_proxy=$HTTP_PROXY && apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
     git \
@@ -113,7 +113,7 @@ ARG userid
 ARG groupid
 ARG username
 RUN set -eux; \
-    export http_proxy=$HTTP_PROXY && apt-get update && apt-get install -y \
+    apt-get update && apt-get install -y \
     less \
     sudo; \
     apt-get clean && \

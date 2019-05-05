@@ -10,15 +10,14 @@
 # If it is desired to run the container manually through the docker command-line, the following is an example
 # 'docker run -it --rm -v [host/directory]:[container/directory]:ro <user-name>/<project-name>'.
 
-FROM ubuntu:16.04
-MAINTAINER Michael Wootton <michael.wootton@amd>
+FROM ubuntu:18.04
 
 # Initialize the image
 # Modify to pre-install dev tools and ROCm packages
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends curl && \
+RUN apt-get update && env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends curl gnupg && \
   curl -sL http://repo.radeon.com/rocm/apt/debian/rocm.gpg.key | apt-key add - && \
   sh -c 'echo deb [arch=amd64] http://repo.radeon.com/rocm/apt/debian/ xenial main > /etc/apt/sources.list.d/rocm.list' && \
-  apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+  apt-get update && env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   sudo \
   libelf1 \
   build-essential \
@@ -41,10 +40,10 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
   make \
   miopen-hip \
   miopengemm \
-  python-dev \
-  python-future \
-  python-yaml \
-  python-pip \
+  python \
+  python3-dev \
+  python3-yaml \
+  python3-pip \
   vim \
   libssl-dev \
   libboost-dev \
@@ -65,16 +64,19 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
   curl -sL https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \
   sh -c 'echo deb [arch=amd64] http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main > /etc/apt/sources.list.d/llvm7.list' && \
   sh -c 'echo deb-src http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main >> /etc/apt/sources.list.d/llvm7.list' && \
-  apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+  apt-get update && env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   clang-7 && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/*
 
 # fix capitalization in some cmake files...
-RUN sed -i 's/find_dependency(hip)/find_dependency(HIP)/g' /opt/rocm/rocsparse/lib/cmake/rocsparse/rocsparse-config.cmake
-RUN sed -i 's/find_dependency(hip)/find_dependency(HIP)/g' /opt/rocm/rocfft/lib/cmake/rocfft/rocfft-config.cmake
-RUN sed -i 's/find_dependency(hip)/find_dependency(HIP)/g' /opt/rocm/miopen/lib/cmake/miopen/miopen-config.cmake
-RUN sed -i 's/find_dependency(hip)/find_dependency(HIP)/g' /opt/rocm/rocblas/lib/cmake/rocblas/rocblas-config.cmake
+RUN set -eux;\
+  update-alternatives --install /usr/bin/gcc gcc /usr/bin/clang-7 50 ;\
+  update-alternatives --install /usr/bin/g++ g++ /usr/bin/clang++-7 50 ; \
+  sed -i 's/find_dependency(hip)/find_dependency(HIP)/g' /opt/rocm/rocsparse/lib/cmake/rocsparse/rocsparse-config.cmake; \
+  sed -i 's/find_dependency(hip)/find_dependency(HIP)/g' /opt/rocm/rocfft/lib/cmake/rocfft/rocfft-config.cmake; \
+  sed -i 's/find_dependency(hip)/find_dependency(HIP)/g' /opt/rocm/miopen/lib/cmake/miopen/miopen-config.cmake; \
+  sed -i 's/find_dependency(hip)/find_dependency(HIP)/g' /opt/rocm/rocblas/lib/cmake/rocblas/rocblas-config.cmake
 
 # Grant members of 'sudo' group passwordless privileges
 # Comment out to require sudo
@@ -111,28 +113,37 @@ ENV PATH="${PATH}:/opt/rocm/bin" HIP_PLATFORM="hcc"
 ENV KMTHINLTO="1" LANG="C.UTF-8" LC_ALL="C.UTF-8"
 
 RUN \
-  pip install setuptools
+  set -eux; \
+  pip3 install setuptools; \
+  pip3 install pyyaml; \
+  pip3 install numpy scipy; \
+  pip3 install typing; \
+  pip3 install enum34; \
+  pip3 install hypothesis; \
+  echo DONE
 
+ARG userid
+ARG groupid
+ARG username
 RUN \
-  pip install pyyaml
+  set -eux; \
+  apt-get update && apt-get install -y \
+  less \
+  locales \
+  sudo; \
+  apt-get clean && \
+  rm -rf /var/lib/apt/lists/*; \
+  groupadd -g $groupid $username; \
+  useradd -m -u $userid -g $groupid $username; \
+  usermod -aG sudo $username; \
+  echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers; \
+  echo $username >/root/username; \
+  chgrp $groupid /root; \
+  chmod g+rx /root; \
+  locale-gen en_US en_US.UTF-8; \
+  update-locale LANG=en_US LC_ALL=en_US.UTF-8; \
+  echo DONE
 
-RUN \
-  pip install numpy scipy
-
-RUN \
-  pip install typing
-
-RUN \
-  pip install enum34
-
-RUN \
-  pip install hypothesis
-
-RUN \
-  update-alternatives --install /usr/bin/gcc gcc /usr/bin/clang-7 50 && \
-  update-alternatives --install /usr/bin/g++ g++ /usr/bin/clang++-7 50
-
-#RUN \
 #  git clone https://github.com/pytorch/vision.git 
 # NOTE: Have to perform the following after pytorch is built and installed
 #  cd vision && \

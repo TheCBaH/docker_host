@@ -89,22 +89,49 @@ gcloud.run: gcloud.image
 	docker run --rm -i${TERMINAL} -v ~/.ssh:/home/${USER}/.ssh -v ~/.config/gcloud:/home/${USER}/.config/gcloud $(basename $@) ${GCLOUD_CMD}
 
 %.gcloud:
-	docker run --name gcloud-${basename $@} --rm -it -v ${WORKSPACE}:/workspace:ro -v ~/.ssh:/home/${USER}/.ssh -v ~/.config/gcloud:/home/${USER}/.config/gcloud gcloud run /workspace/gcloud/$(basename $@)
+	docker run --name gcloud-${basename $@} --rm -i${TERMINAL} -v ${WORKSPACE}:/workspace:ro -v ~/.ssh:/home/${USER}/.ssh -v ~/.config/gcloud:/home/${USER}/.config/gcloud gcloud run /workspace/gcloud/$(basename $@)
 
 aws.run: aws.image
-	docker run --rm -it -v ~/.aws:/home/${USER}/.aws $(basename $@)
+	docker run --rm -i${TERMINAL} -v ~/.aws:/home/${USER}/.aws $(basename $@)
 
 tensorflow.image:
-	#cd tensorflow;docker build --build-arg userid=${UID} --build-arg groupid=${GID} --build-arg username=${USER} --build-arg HTTP_PROXY=${http_proxy} -f devel-cpu.Dockerfile -t $(basename $@) .
-	docker build --build-arg userid=${UID} --build-arg groupid=${GID} --build-arg username=${USER} --build-arg HTTP_PROXY=${http_proxy} -f tensorflow/Dockerfile-tensorflow-rocm -t $(basename $@) .
+	#cd tensorflow;docker build --build-arg userid=${UID} --build-arg groupid=${GID} --build-arg username=${USER} -f devel-cpu.Dockerfile -t $(basename $@) .
+	docker build ${proxy} --build-arg userid=${UID} --build-arg groupid=${GID} --build-arg username=${USER} -f tensorflow/Dockerfile-tensorflow-rocm -t $(basename $@) .
 
 tensorflow.run:
-	#docker run -it --rm -u ${UID}:${GID} -e HOME=${HOME} -e USER=${USER} -v ${HOME}:${HOME} ${basename $@}
-	docker run --cap-add=SYS_PTRACE  -it  --rm --device=/dev/kfd --device=/dev/dri --group-add sudo --group-add 34 -u ${UID}:${GID} -e HOME=${HOME} -e USER=${USER} -v ${HOME}:${HOME} ${basename $@}
+	#docker run -i${TERMINAL} --rm -u ${UID}:${GID} -e HOME=${HOME} -e USER=${USER} -v ${HOME}:${HOME} ${basename $@}
+	docker run --cap-add=SYS_PTRACE  -i${TERMINAL}  --rm --device=/dev/kfd --device=/dev/dri --group-add sudo --group-add 34 -u ${UID}:${GID} -e HOME=${HOME} -e USER=${USER} -v ${HOME}:${HOME} ${basename $@}
 
+TEHSORFLOW_TAG?=1.13.1
+tensorflow.dockerhub:
+	docker run -i${TERMINAL} --rm -u ${UID}:${GID} -e HOME=${HOME} -e USER=${USER} -p 8080:8080 -v ${HOME}:${HOME} tensorflow/tensorflow:${TEHSORFLOW_TAG}
+
+#ROCM_TEHSORFLOW_TAG?=rocm2.1-tf1.13-python3
+ROCM_TEHSORFLOW_TAG?=rocm2.4-tf1.13-python3
+tensorflow.rocm:
+	echo chroot --userspec=${UID}:34 / bash
+	docker run -i${TERMINAL} --rm --device=/dev/kfd --device=/dev/dri --group-add 34 -e HOME=${HOME} -e USER=${USER} -p 8081:8080 -v ${HOME}:${HOME} --workdir ${HOME} rocm/tensorflow:${ROCM_TEHSORFLOW_TAG}
+
+PYTORCH_TAG?=1.1.0-cuda10.0-cudnn7.5-runtime
+pytorch.dockerhub:
+	#docker run -i${TERMINAL} --rm -u ${UID}:${GID} -e HOME=${HOME} -e USER=${USER} -v ${HOME}:${HOME} pytorch/pytorch:${PYTORCH_TAG}
+	docker run -i${TERMINAL} --rm -v ${HOME}:${HOME} pytorch/pytorch:${PYTORCH_TAG}
 
 pytorch.image:
-	docker build --build-arg userid=${UID} --build-arg groupid=${GID} --build-arg username=${USER} --build-arg HTTP_PROXY=${http_proxy} -f pytorch/Dockerfile-pytorch-rocm -t $(basename $@) .
+	docker build --build-arg userid=${UID} --build-arg groupid=${GID} --build-arg username=${USER} ${proxy} -f pytorch/Dockerfile-pytorch-rocm -t $(basename $@) .
 
 pytorch.run:
-	 docker run --cap-add=SYS_PTRACE  -it  --rm --device=/dev/kfd --device=/dev/dri --group-add sudo --group-add 34 -u ${UID}:${GID} -e HOME=${HOME} -e USER=${USER} -v ${HOME}:${HOME} ${basename $@}
+	 docker run --cap-add=SYS_PTRACE  -i${TERMINAL}  --rm --device=/dev/kfd --device=/dev/dri --group-add sudo --group-add 34 -u ${UID}:${GID} -e HOME=${HOME} -e USER=${USER} -v ${HOME}:${HOME} ${basename $@}
+
+#ROCRCOM_M_PYTORCH_TAG?=rocm2.1_ubuntu16.04_py3.6_pytorch_gfx900
+ROCRCOM_M_PYTORCH_TAG?=rocm2.3_ubuntu16.04_py3.6_pytorch
+pytorch.rocm:
+	echo chroot --userspec=${UID}:34 / bash
+	docker run -i${TERMINAL} --rm --device=/dev/kfd --device=/dev/dri --group-add 34 -e HOME=${HOME} -e USER=${USER}  -v ${HOME}:${HOME}  rocm/pytorch:${ROCRCOM_M_PYTORCH_TAG}
+
+pytorch.18_04:
+	docker build --build-arg userid=${UID} --build-arg groupid=${GID} --build-arg username=${USER} ${proxy} -f pytorch/Dockerfile-pytorch-18.04 -t $(basename $@):18.04 .
+
+pytorch.18_04.run:
+	 docker run --cap-add=SYS_PTRACE  -i${TERMINAL}  --rm --device=/dev/kfd --device=/dev/dri --group-add sudo --group-add 34  -e HOME=${HOME} -e USER=${USER} -v ${HOME}:${HOME}  pytorch:18.04
+
