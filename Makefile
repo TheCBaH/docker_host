@@ -108,3 +108,10 @@ pytorch.image:
 
 pytorch.run:
 	 docker run --cap-add=SYS_PTRACE  -it  --rm --device=/dev/kfd --device=/dev/dri --group-add sudo --group-add 34 -u ${UID}:${GID} -e HOME=${HOME} -e USER=${USER} -v ${HOME}:${HOME} ${basename $@}
+
+pytorch.18_04:
+	docker build --build-arg userid=${UID} --build-arg groupid=${GID} --build-arg username=${USER} --build-arg HTTP_PROXY=${http_proxy} -f pytorch/Dockerfile-pytorch-18.04 -t $(basename $@):18.04 .
+
+pytorch.18_04.run:
+	 docker run --cap-add=SYS_PTRACE  -it  --rm --device=/dev/kfd --device=/dev/dri --group-add sudo --group-add 34  -e HOME=${HOME} -e USER=${USER} -v ${HOME}:${HOME}  pytorch:18.04
+
