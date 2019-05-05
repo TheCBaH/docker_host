@@ -1,0 +1,21 @@
+FROM rocm/tensorflow:rocm2.3-tf1.13-python3-dev-v2
+ARG userid
+ARG groupid
+ARG username
+RUN set -eux; \
+    export http_proxy=$HTTP_PROXY && apt-get update && apt-get install -y \
+    less \
+    locales \
+    sudo; \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*; \
+    groupadd -g $groupid $username; \
+    useradd -m -u $userid -g $groupid $username; \
+    usermod -aG sudo $username; \
+    echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers; \
+    echo $username >/root/username; \
+    chgrp $groupid /root; \
+    chmod g+rx /root; \
+    locale-gen en_US en_US.UTF-8; \
+    update-locale LANG=en_US LC_ALL=en_US.UTF-8; \
+    echo DONE
