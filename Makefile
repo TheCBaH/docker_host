@@ -102,6 +102,18 @@ tensorflow.run:
 	#docker run -it --rm -u ${UID}:${GID} -e HOME=${HOME} -e USER=${USER} -v ${HOME}:${HOME} ${basename $@}
 	docker run --cap-add=SYS_PTRACE  -it  --rm --device=/dev/kfd --device=/dev/dri --group-add sudo --group-add 34 -u ${UID}:${GID} -e HOME=${HOME} -e USER=${USER} -v ${HOME}:${HOME} ${basename $@}
 
+TEHSORFLOW_TAG?=1.13.1
+tensorflow.dockerhub:
+	docker run -it --rm -u ${UID}:${GID} -e HOME=${HOME} -e USER=${USER} -p 8080:8080 -v ${HOME}:${HOME} tensorflow/tensorflow:${TEHSORFLOW_TAG}
+
+RCOM_TEHSORFLOW_TAG?=rocm2.1-tf1.13-python3
+tensorflow.rocm:
+	docker run -it --rm --device=/dev/kfd --device=/dev/dri --group-add 34 -u ${UID}:${GID} -e HOME=${HOME} -e USER=${USER} -p 8081:8080 -v ${HOME}:${HOME} --workdir ${HOME} rocm/tensorflow:${RCOM_TEHSORFLOW_TAG}
+
+PYTORCH_TAG?=1.1.0-cuda10.0-cudnn7.5-runtime
+pytorch.dockerhub:
+	#docker run -it --rm -u ${UID}:${GID} -e HOME=${HOME} -e USER=${USER} -v ${HOME}:${HOME} pytorch/pytorch:${PYTORCH_TAG}
+	docker run -it --rm -v ${HOME}:${HOME} pytorch/pytorch:${PYTORCH_TAG}
 
 pytorch.image:
 	docker build --build-arg userid=${UID} --build-arg groupid=${GID} --build-arg username=${USER} --build-arg HTTP_PROXY=${http_proxy} -f pytorch/Dockerfile-pytorch-rocm -t $(basename $@) .
