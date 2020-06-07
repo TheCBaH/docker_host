@@ -34,7 +34,7 @@ debootstrap.test:
 	echo $($(basename $@)_packages)
 
 debootstrap.container:
-	docker build --build-arg HTTP_PROXY=${http_proxy} -f Dockerfile-$(basename $@) -t $(basename $@) .
+	docker build ${proxy} -f Dockerfile-$(basename $@) -t $(basename $@) .
 
 debootstrap.init: debootstrap.container
 	docker run --userns=host --cap-add=SYS_ADMIN --security-opt apparmor:unconfined  -e http_proxy=${http_proxy} -v $(basename $@):/chroot --rm -it $(basename $@) bash -c \
