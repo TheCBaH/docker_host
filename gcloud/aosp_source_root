@@ -5,13 +5,14 @@ instance=aosp-prepare-source-root
 disk=aosp-builder
 disk_mirror=aosp-mirror
 disk_source_root=aosp-source-root
+disk_type='--type=pd-standard'
 cleanup () {
    gcloud --verbosity info compute instances delete --quiet ${instance} || true
 }
 cleanup
 trap cleanup EXIT
 gcloud --verbosity info compute disks delete --quiet ${disk_source_root} || true
-gcloud --verbosity info compute disks create --size=80G ${disk_source_root}
+gcloud --verbosity info compute disks create --size=80G ${disk_type} ${disk_source_root}
 gcloud --verbosity info compute instances create --no-restart-on-failure --disk=boot=yes,name=${disk} --disk=name=${disk_mirror} --disk=name=${disk_source_root} --machine-type f1-micro ${instance}
 for t in $(seq -s ' ' 1 10); do
    if gcloud compute ssh ${instance} -- id ; then
