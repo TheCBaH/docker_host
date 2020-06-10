@@ -1,4 +1,5 @@
-FROM        ubuntu
+ARG UBUNTU_VER
+FROM ubuntu:${UBUNTU_VER}
 RUN set -eux;\
     export http_proxy=$HTTP_PROXY; \
     apt-get update;\
