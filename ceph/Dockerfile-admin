@@ -13,8 +13,10 @@ RUN set -eux;\
     echo CONTINUE
 RUN set -eux;\
     env http_proxy=$HTTP_PROXY apt-get update;\
-    env http_proxy=$HTTP_PROXY apt-get install -y ceph-deploy;\
-    apt-get clean; rm -rf /var/lib/apt/lists/*;\
+    env http_proxy=$HTTP_PROXY apt-get install -y\
+ ceph-deploy\
+ openssh-client\
+    ;apt-get clean; rm -rf /var/lib/apt/lists/*;\
     echo DONE
 ARG userid
 ARG groupid
@@ -23,3 +25,5 @@ RUN set -eux; \
     groupadd -g $groupid $username; \
     useradd -m -u $userid -g $groupid $username; \
     echo DONE
+USER ${username}
+WORKDIR /home/${username}
