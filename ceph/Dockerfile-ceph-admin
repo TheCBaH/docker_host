@@ -1,0 +1,29 @@
+FROM debian
+ARG CEPH_RELEASE=nautilus
+# https://docs.ceph.com/docs/master/rados/deployment/preflight-checklist/#install-ceph-deploy
+RUN set -eux;\
+    apt-get update;\
+    apt-get install -y --no-install-recommends \
+ ca-certificates\
+ curl\
+ gnupg\
+ lsb-release\
+    ;curl --location --show-error --silent 'https://download.ceph.com/keys/release.asc' | apt-key add -;\
+    echo deb https://download.ceph.com/debian-${CEPH_RELEASE}/ $(lsb_release -sc) main >> /etc/apt/sources.list.d/ceph.list;\
+    echo CONTINUE
+RUN set -eux;\
+    apt-get update;\
+    apt-get install -y\
+ ceph-deploy\
+ openssh-client\
+    ;apt-get clean; rm -rf /var/lib/apt/lists/*;\
+    echo DONE
+ARG userid
+ARG groupid
+ARG username
+RUN set -eux; \
+    groupadd -g $groupid $username; \
+    useradd -m -u $userid -g $groupid $username; \
+    echo DONE
+USER ${username}
+WORKDIR /home/${username}
