@@ -20,11 +20,13 @@ apt_cache.logs:
 	docker logs $(basename $@)
 
 apt_cache.run:
-	docker run --rm -it --volumes-from $(basename $@) $(basename $@) bash
+	docker run --rm -i${TERMINAL} --volumes-from $(basename $@) $(basename $@) bash
+
+apt_cache.start: apt_cache.container
 
 apt_cache.stop:
 	-docker exec $(basename $@) /etc/init.d/apt-cacher-ng stop
-	-docker kill $(basename $@)
+	-docker stop $(basename $@)
 	-docker rm $(basename $@)
 
 debootstrap_packages_essential=$(shell cat essential.lst)
