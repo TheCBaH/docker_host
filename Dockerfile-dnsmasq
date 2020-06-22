@@ -1,0 +1,11 @@
+FROM    alpine
+RUN set -eux;\
+    apk update;\
+    apk --no-cache add dnsmasq;\
+    rm -rf /tmp/* /var/cache/apk/*  /var/tmp/*;\
+    echo 'server=8.8.8.8'>/etc/dnsmasq.conf;\
+    echo DONE
+RUN set -eux;\
+    echo 'log-queries'>>/etc/dnsmasq.conf;\
+    echo DONE
+EXPOSE  53/udp
