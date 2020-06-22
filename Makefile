@@ -29,6 +29,18 @@ apt_cache.stop:
 	-docker stop $(basename $@)
 	-docker rm $(basename $@)
 
+dnsmasq.image:
+	docker build -f Dockerfile-$(basename $@) -t $(basename $@) .
+
+dnsmasq.logs:
+	docker logs $(basename $@)
+
+dnsmasq.start:
+	docker run --detach --name $(basename $@) --rm -p 53:53/udp -v /etc/hosts:/etc/hosts.host:ro $(basename $@) dnsmasq --no-daemon  --no-resolv --no-hosts --addn-hosts /etc/hosts.host --server 8.8.8.8
+
+dnsmasq.stop:
+	docker stop $(basename $@)
+
 debootstrap_packages_essential=$(shell cat essential.lst)
 debootstrap_packages_core=$(shell cat core-packages.lst)
 
