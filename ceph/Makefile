@@ -15,8 +15,14 @@ ceph-admin.image:
 ~/.ssh/known_hosts.ceph:
 	cp -p ~/.ssh/known_hosts $@
 
-ceph-admin.run: ceph-admin.image ~/.ssh/known_hosts.ceph
-	docker run --rm -i${TERMINAL} -u ${UID} -v /etc/hosts:/etc/hosts:ro -v$$(pwd)/ceph:/home/${USER} -v ~/.ssh/known_hosts.ceph:/home/${USER}/.ssh/known_hosts -v ~/.ssh/id_rsa:/home/${USER}/.ssh/id_rsa $(basename $@) ceph-deploy --username ceph_${USER} -v ${DEPLOY_CMD}
+ceph/.ssh:
+	mkdir -p $@
+	chmod 755 $@
+	cp -p ~/.ssh/id_rsa $@/id_rsa
+	cp -p ~/.ssh/id_rsa.pub $@/id_rsa.pub
+
+ceph-admin.run: ceph-admin.image ceph/.ssh
+	docker run --rm -i${TERMINAL} -u ${UID} -v /etc/hosts:/etc/hosts:ro -v$$(pwd)/ceph:/home/${USER} $(basename $@) ceph-deploy --username ${USER}_ceph -v ${DEPLOY_CMD}
 
 ceph.install:
 	${MAKE} ceph-admin.run DEPLOY_CMD='install --release ${CEPH_RELEASE} ${HOSTS}'
