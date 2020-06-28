@@ -36,10 +36,12 @@ dnsmasq.logs:
 	docker logs $(basename $@)
 
 dnsmasq.start:
-	docker run --detach --name $(basename $@) --rm -p 53:53/udp -v /etc/hosts:/etc/hosts.host:ro $(basename $@) dnsmasq --no-daemon  --no-resolv --no-hosts --addn-hosts /etc/hosts.host --server 8.8.8.8
+	docker run --detach --name $(basename $@) --rm -p 53:53/udp -v /etc/hosts:/etc/hosts.host:ro $(basename $@) dnsmasq --no-daemon  --no-resolv --no-hosts --addn-hosts /etc/hosts.host --domain-needed --server 8.8.8.8
 
 dnsmasq.stop:
-	docker stop $(basename $@)
+	-docker stop $(basename $@)
+
+dnsmasq.restart: dnsmasq.stop dnsmasq.start
 
 debootstrap_packages_essential=$(shell cat essential.lst)
 debootstrap_packages_core=$(shell cat core-packages.lst)
