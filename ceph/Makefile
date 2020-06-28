@@ -48,5 +48,8 @@ ceph.admin:
 ceph.mgr:
 	${MAKE} ceph-admin.run DEPLOY_CMD='mgr create ${HOST}'
 
+ceph.mds:
+	${MAKE} ceph-admin.run DEPLOY_CMD='mds create ${HOST}'
+
 ceph.admin_cmd:
 	ssh ${USER}_ceph@${HOST} sudo ceph ${CMD}
