@@ -30,5 +30,23 @@ ceph.install:
 ceph.new:
 	${MAKE} ceph-admin.run DEPLOY_CMD='new ${HOSTS}'
 
-ceph.mon:
+ceph.create:
 	${MAKE} ceph-admin.run DEPLOY_CMD='mon create-initial'
+
+ceph.gatherkeys:
+	${MAKE} ceph-admin.run DEPLOY_CMD='gatherkeys ${HOST}'
+
+ceph.disks:
+	${MAKE} ceph-admin.run DEPLOY_CMD='disk list ${HOSTS}'
+
+ceph.disk-create:
+	${MAKE} ceph-admin.run DEPLOY_CMD='osd create --data "${DISK}" "${HOST}"'
+
+ceph.admin:
+	${MAKE} ceph-admin.run DEPLOY_CMD='admin ${HOST}'
+
+ceph.mgr:
+	${MAKE} ceph-admin.run DEPLOY_CMD='mgr create ${HOST}'
+
+ceph.admin_cmd:
+	ssh ${USER}_ceph@${HOST} sudo ceph ${CMD}
