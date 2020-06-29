@@ -3,21 +3,15 @@ set -eux
 this_script=$(readlink -f $0)
 mode=$1;shift
 target=$1;shift
-hostname=$1;shift
+ceph_user=$1;shift
 case "$mode" in
     server)
         self=$(id -un)@$(ip route get 8.8.8.8 | head -1 | cut -d' ' -f7)
-        #scp -p ~/.ssh/id_rsa.pub ${target}:~/.ssh/authorized_keys
-        ssh-copy-id ${target}
-        #scp -p ~/.ssh/id_rsa  ~/.ssh/id_rsa.pub ${target}:~/.ssh
-        ssh -t $target "set -eux;scp -o StrictHostKeyChecking=no ${self}:${this_script} /tmp/setup.sh;env ceph_user=${ceph_user} /tmp/setup.sh client ${self} ${hostname};rm /tmp/setup.sh;echo DONE"
+        ssh-copy-id -i ~/.ssh/ceph_id_rsa ${target}
+        ssh -i ~/.ssh/ceph_id_rsa -t $target "set -eux;scp -o StrictHostKeyChecking=no ${self}:${this_script} /tmp/setup.sh;/tmp/setup.sh client ${self} ${ceph_user};rm /tmp/setup.sh;echo DONE"
         ;;
     client)
         echo 'eth0: \\4{eth0}' | sudo tee -a /etc/issue
-        sudo hostname ${hostname}
-        echo "${hostname}" | sudo tee /etc/hostname
-        sudo sh -ceux 'dd if=/dev/zero of=/swapfile bs=1024 count=524288;chmod 600 /swapfile;mkswap /swapfile;
-            echo "/swapfile none    swap    sw      0       0" >>/etc/fstab'
         sudo useradd --system -d /home/$ceph_user -m $ceph_user
         echo "$ceph_user ALL = (root) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/$ceph_user
         sudo chmod 0440 /etc/sudoers.d/$ceph_user
@@ -25,7 +19,7 @@ case "$mode" in
         sudo chown -R $ceph_user /home/$ceph_user
         sudo apt-get update
         sudo apt-get install -y --no-install-recommends gnupg python2 wget
-        sudo apt-get clean; sudo rm -rf /var/lib/apt/lists/*
+        sudo apt-get clear; sudo rm -rf /var/lib/apt/lists/*
         ;;
     *)
         echo "Unknown $mode" >&2
