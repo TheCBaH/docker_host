@@ -21,8 +21,10 @@ ceph/.ssh:
 	cp -p ~/.ssh/id_rsa $@/id_rsa
 	cp -p ~/.ssh/id_rsa.pub $@/id_rsa.pub
 
+CEPH_USER=${USER}_ceph
+
 ceph-admin.run: ceph-admin.image ceph/.ssh
-	docker run --rm -i${TERMINAL} -u ${UID} -v /etc/hosts:/etc/hosts:ro -v$$(pwd)/ceph:/home/${USER} $(basename $@) ceph-deploy --username ${USER}_ceph -v ${DEPLOY_CMD}
+	docker run --rm -i${TERMINAL} -u ${UID} -v /etc/hosts:/etc/hosts:ro -v$$(pwd)/ceph:/home/${USER} $(basename $@) ceph-deploy --username ${CEPH_USER} -v ${DEPLOY_CMD}
 
 ceph.install:
 	${MAKE} ceph-admin.run DEPLOY_CMD='install --release ${CEPH_RELEASE} ${HOSTS}'
@@ -52,4 +54,10 @@ ceph.mds:
 	${MAKE} ceph-admin.run DEPLOY_CMD='mds create ${HOST}'
 
 ceph.admin_cmd:
-	ssh ${USER}_ceph@${HOST} sudo ceph ${CMD}
+	ssh ${CEPH_USER}@${HOST} sudo ceph ${CMD}
+
+ceph.python-yaml:
+	ssh ${CEPH_USER}@${HOST} sudo apt-get install -y python3-yaml
+
+ceph.host_cmd:
+	ssh ${CEPH_USER}@${HOST} sudo ${CMD}
