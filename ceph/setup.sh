@@ -19,7 +19,7 @@ case "$mode" in
         sudo chown -R $ceph_user /home/$ceph_user
         sudo apt-get update
         sudo apt-get install -y --no-install-recommends gnupg python2 wget
-        sudo apt-get clear; sudo rm -rf /var/lib/apt/lists/*
+        sudo apt-get clean; sudo rm -rf /var/lib/apt/lists/*
         ;;
     *)
         echo "Unknown $mode" >&2
