@@ -2,15 +2,34 @@
 set -eux
 this_script=$(readlink -f $0)
 mode=$1;shift
-target=$1;shift
-ceph_user=$1;shift
 case "$mode" in
     server)
+        target=$1;shift
+        ceph_user=$1;shift
         self=$(id -un)@$(ip route get 8.8.8.8 | head -1 | cut -d' ' -f7)
         ssh-copy-id -i ~/.ssh/ceph_id_rsa ${target}
-        ssh -i ~/.ssh/ceph_id_rsa -t $target "set -eux;scp -o StrictHostKeyChecking=no ${self}:${this_script} /tmp/setup.sh;/tmp/setup.sh client ${self} ${ceph_user};rm /tmp/setup.sh;echo DONE"
+        scp -i ~/.ssh/ceph_id_rsa ${this_script} ${target}:/tmp/setup.sh
+        ssh -i ~/.ssh/ceph_id_rsa -t $target "set -eux;/tmp/setup.sh client ${self} ${ceph_user};rm /tmp/setup.sh;echo DONE"
+        ;;
+    server.provision)
+        target=$1;shift
+        ceph_user=$1;shift
+        host=$1;shift
+        scp -i ~/.ssh/ceph_id_rsa ${this_script} ${ceph_user}@${target}:/tmp/setup.sh
+        ssh -i ~/.ssh/ceph_id_rsa -t ${ceph_user}@${target} "set -eux;/tmp/setup.sh client.provision ${host};rm -f /tmp/setup.sh;echo DONE"
+        ;;
+    client.provision)
+        host=$1;shift
+        sudo hostname $host
+        sudo sed -i "s/debian/${host}/g" /etc/hosts
+        echo "${host}"|sudo tee /etc/hostname
+        sudo update-grub
         ;;
     client)
+        server=$1;shift
+        ceph_user=$1;shift
+        sudo sed -i -E 's/(ext4[ ]+)(def|err)/\1noatime,\2/' /etc/fstab
+        grep ext4 /etc/fstab
         if grep -q eth0 /etc/issue; then
             true
         else

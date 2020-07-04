@@ -19,6 +19,9 @@ ceph-admin.image:
 client: ~/.ssh/ceph_id_rsa
 	./setup.sh server "${HOST}" ${CEPH_USER}
 
+client.provision: ~/.ssh/ceph_id_rsa
+	./setup.sh server.provision "${HOST}" ${CEPH_USER} "${HOSTNAME}"
+
 ceph/.ssh: ~/.ssh/ceph_id_rsa
 	mkdir -p $@
 	chmod 755 $@
