@@ -21,9 +21,16 @@ case "$mode" in
     client.provision)
         host=$1;shift
         sudo hostname $host
-        sudo sed -i "s/debian/${host}/g" /etc/hosts
-        echo "${host}"|sudo tee /etc/hostname
+        if grep -q "${host}_" /etc/hosts; then
+            true
+        else
+            sudo sed -i "s/debian/${host}/g" /etc/hosts
+            sudo /bin/rm -v /etc/ssh/ssh_host_*
+            sudo dpkg-reconfigure openssh-server
+            echo "${host}"|sudo tee /etc/hostname
+        fi
         sudo update-grub
+        sudo systemctl restart ssh
         ;;
     client)
         server=$1;shift
@@ -56,7 +63,7 @@ case "$mode" in
         sudo apt-get install -y --no-install-recommends firmware-amd-graphics firmware-realtek
         sudo apt-get purge -y software-properties-common
         sudo apt-get auto-remove -y software-properties-common
-        sudo apt-get install -y --no-install-recommends screen sysstat
+        sudo apt-get install -y --no-install-recommends screen sysstat smartmontools usbutils
         sudo apt-get clean; sudo rm -rf /var/lib/apt/lists/*
         ;;
     *)
