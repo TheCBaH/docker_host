@@ -30,7 +30,7 @@ ceph/.ssh: ~/.ssh/ceph_id_rsa
 
 
 ceph-admin.run: ceph-admin.image ceph/.ssh
-	docker run --rm -i${TERMINAL} -u ${UID} -v /etc/hosts:/etc/hosts:ro -v$$(pwd)/ceph:/home/${USER} $(basename $@) ceph-deploy --username ${CEPH_USER} -v ${DEPLOY_CMD}
+	docker run --rm -i${TERMINAL} -u ${UID} -v /etc/hosts:/etc/hosts:ro -v$$(pwd)/ceph:/home/${USER} $(basename $@) ceph-deploy --username ${CEPH_USER} ${OPTS} -v ${DEPLOY_CMD}
 
 ceph.install:
 	${MAKE} ceph-admin.run DEPLOY_CMD='install --release ${CEPH_RELEASE} ${HOST}'
@@ -38,26 +38,45 @@ ceph.install:
 	${MAKE} ceph.host_cmd CMD='rm -rf /var/lib/apt/lists/*'
 	${MAKE} ceph.host_cmd CMD='df -h'
 
+ceph.overwrite_conf:
+	${MAKE} ceph-admin.run DEPLOY_CMD='--overwrite-conf new ${HOSTS}'
+
 ceph.new:
 	${MAKE} ceph-admin.run DEPLOY_CMD='new ${HOSTS}'
+
+ceph.purge:
+	${MAKE} ceph-admin.run DEPLOY_CMD='uninstall ${HOST}'
+	${MAKE} ceph-admin.run DEPLOY_CMD='purgedata ${HOST}'
 
 ceph.create:
 	${MAKE} ceph-admin.run DEPLOY_CMD='mon create-initial'
 
 ceph.gatherkeys:
-	${MAKE} ceph-admin.run DEPLOY_CMD='gatherkeys ${HOST}'
+	${MAKE} ceph-admin.run DEPLOY_CMD='gatherkeys ${HOST} ${HOSTS}'
 
 ceph.disks:
-	${MAKE} ceph-admin.run DEPLOY_CMD='disk list ${HOSTS}'
+	${MAKE} ceph-admin.run DEPLOY_CMD='disk list ${HOST}'
 
 ceph.disk-create:
 	${MAKE} ceph-admin.run DEPLOY_CMD='osd create --data "${DISK}" "${HOST}"'
 
+ceph.disk-zap:
+	${MAKE} ceph-admin.run DEPLOY_CMD='disk zap "${HOST}" "${DISK}"'
+
 ceph.admin:
-	${MAKE} ceph-admin.run DEPLOY_CMD='admin ${HOST}'
+	${MAKE} ceph-admin.run DEPLOY_CMD='${OPTS} admin ${HOST}'
 
 ceph.mgr:
 	${MAKE} ceph-admin.run DEPLOY_CMD='mgr create ${HOST}'
+
+ceph.mon:
+	${MAKE} ceph-admin.run DEPLOY_CMD='mon create ${HOST}'
+
+ceph.mon.add:
+	${MAKE} ceph-admin.run DEPLOY_CMD='mon add ${HOST}'
+
+ceph.mon.destroy:
+	${MAKE} ceph-admin.run DEPLOY_CMD='mon destroy ${HOST}'
 
 ceph.mds:
 	${MAKE} ceph-admin.run DEPLOY_CMD='mds create ${HOST}'
@@ -70,3 +89,15 @@ ceph.python-yaml:
 
 ceph.host_cmd:
 	ssh -t -i ~/.ssh/ceph_id_rsa ${CEPH_USER}@${HOST} sudo ${CMD}
+
+ceph.map_osd:
+	./setup.sh server.map_osd "${HOST}" ${CEPH_USER}  osd
+
+/etc/ceph:
+	sudo ln -s ${realpath ceph} $@
+
+/mnt/ceph:
+	sudo mkdir -p $@
+
+ceph.mount:/etc/ceph /mnt/ceph
+	sudo ceph-fuse /mnt/ceph

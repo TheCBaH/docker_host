@@ -18,6 +18,24 @@ case "$mode" in
         scp -i ~/.ssh/ceph_id_rsa ${this_script} ${ceph_user}@${target}:/tmp/setup.sh
         ssh -i ~/.ssh/ceph_id_rsa -t ${ceph_user}@${target} "set -eux;/tmp/setup.sh client.provision ${host};rm -f /tmp/setup.sh;echo DONE"
         ;;
+    server.map_osd)
+        target=$1;shift
+        ceph_user=$1;shift
+        map=$1;shift
+        scp -i ~/.ssh/ceph_id_rsa ${this_script} ${ceph_user}@${target}:/tmp/setup.sh
+        ssh -i ~/.ssh/ceph_id_rsa -t ${ceph_user}@${target} "set -eux;/tmp/setup.sh client.map_osd ${map};rm -f /tmp/setup.sh;echo DONE"
+        ;;
+    client.map_osd)
+        map=$1;shift
+        cd /tmp
+        sudo ceph osd getcrushmap -o map
+        crushtool -d map -o map.txt
+        sed -E -i "s/(firstn 0 type) [a-z]+/\1 ${map}/" map.txt
+        crushtool -c map.txt -o map.new
+        sudo ceph osd setcrushmap -i map.new
+        sudo rm map map.txt map.new
+        ;;
+
     client.provision)
         host=$1;shift
         sudo hostname $host
@@ -63,7 +81,7 @@ case "$mode" in
         sudo apt-get install -y --no-install-recommends firmware-amd-graphics firmware-realtek
         sudo apt-get purge -y software-properties-common
         sudo apt-get auto-remove -y software-properties-common
-        sudo apt-get install -y --no-install-recommends screen sysstat smartmontools usbutils
+        sudo apt-get install -y --no-install-recommends screen strace sysstat smartmontools usbutils
         sudo apt-get clean; sudo rm -rf /var/lib/apt/lists/*
         ;;
     *)
