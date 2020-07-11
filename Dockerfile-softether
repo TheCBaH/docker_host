@@ -1,0 +1,12 @@
+FROM        ubuntu:18.04
+
+RUN set -eux;\
+    apt-get update;\
+    apt-get install -y --no-install-recommends software-properties-common;\
+    apt-add-repository ppa:paskal-07/softethervpn;\
+    apt-get update;\
+    apt-get install -y --no-install-recommends softether-vpnserver;\
+    apt-add-repository -r ppa:paskal-07/softethervpn;\
+    apt-get purge -y software-properties-common;\
+    apt-get clean; rm -rf /var/lib/apt/lists/*;\
+    echo DONE

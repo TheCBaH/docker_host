@@ -165,3 +165,11 @@ pytorch.18_04.run:
 	${MAKE} $(basename $@).run_docker_test
 	${MAKE} -C docker_kvm $(basename $@).ssh.stop
 
+softether.image:
+	docker build ${proxy} -f Dockerfile-$(basename $@) -t $(basename $@) .
+
+vpn_server.config:
+	touch $@
+
+softether.run: vpn_server.config
+	docker run -i${TERMINAL} --rm --name $(basename $@) --userns=host -v $(realpath $<):/usr/libexec/softether/vpnserver/vpn_server.config --net host --cap-add NET_ADMIN $(basename $@)
