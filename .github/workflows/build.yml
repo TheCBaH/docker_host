@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [16.04, 18.04, 20.04]
+        os: [ubuntu]
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+    - name: kvm.image
+      run: |
+        set -x
+        make -C docker_kvm kvm_image
+        make -C docker_kvm ${{ matrix.os }}-${{ matrix.version }}.init
+    - name: docker
+      run: |
+        make USE_TAP=y ${{ matrix.os }}-${{ matrix.version }}.docker_test

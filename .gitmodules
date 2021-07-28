@@ -1,0 +1,3 @@
+[submodule "docker_kvm"]
+	path = docker_kvm
+	url = https://github.com/TheCBaH/docker_kvm

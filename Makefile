@@ -135,3 +135,17 @@ pytorch.18_04:
 pytorch.18_04.run:
 	 docker run --cap-add=SYS_PTRACE  -i${TERMINAL}  --rm --device=/dev/kfd --device=/dev/dri --group-add sudo --group-add 34  -e HOME=${HOME} -e USER=${USER} -v ${HOME}:${HOME}  pytorch:18.04
 
+
+%.qemu_init:
+	${MAKE} -C docker_kvm kvm_image $(basename $@).init
+
+%.run_docker_test:
+	docker_kvm/kvm_ssh ssh sudo env $(if $(http_proxy), http_proxy=${http_proxy})\
+	 DOCKER_USER=${USER} bash -eux -o pipefail <docker.sh
+
+%.docker_test:
+	-${MAKE} -C docker_kvm $(basename $@).ssh.stop
+	${MAKE} -C docker_kvm $(basename $@).ssh.start
+	${MAKE} $(basename $@).run_docker_test
+	${MAKE} -C docker_kvm $(basename $@).ssh.stop
+

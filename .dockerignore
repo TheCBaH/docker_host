@@ -1,5 +1,2 @@
-.git/
-Docker*
-Make*
-*.lst
-image*
+**
+!entrypoint.sh
