@@ -29,8 +29,18 @@ apt_cache.stop:
 	-docker stop $(basename $@)
 	-docker rm $(basename $@)
 
-dnsmasq.image:
-	docker build -f Dockerfile-$(basename $@) -t $(basename $@) .
+polipo.volume:
+	-docker volume rm $(basename $@)
+	docker volume create --driver local --opt type=bind --opt o=bind --opt device=${VOLUME_DIR}/$(basename $@) $(basename $@)
+
+polipo.container: polipo.image
+	-docker stop $(basename $@)
+	-docker rm $(basename $@)
+	docker run -d --rm --init -p 8123:8123 --name $(basename $@) -v $(basename $@):/var/cache/$(basename $@) $(basename $@)
+
+polipo.logs:
+	docker exec -i${TERMINAL} $(basename $@) cat /var/log/polipo/polipo.log
+
 
 dnsmasq.logs:
 	docker logs $(basename $@)
@@ -53,18 +63,18 @@ debootstrap.container:
 	docker build ${proxy} -f Dockerfile-$(basename $@) -t $(basename $@) .
 
 debootstrap.init: debootstrap.container
-	docker run --userns=host --cap-add=SYS_ADMIN --security-opt apparmor:unconfined  -e http_proxy=${http_proxy} -v $(basename $@):/chroot --rm -it $(basename $@) bash -c \
+	docker run --userns=host --cap-add=SYS_ADMIN --security-opt apparmor:unconfined  -e http_proxy=${http_proxy} -v $(basename $@):/chroot --rm -i${TERMINAL} $(basename $@) bash -c \
 	'debootstrap --variant=minbase --arch=amd64 bionic /chroot http://archive.ubuntu.com/ubuntu/'
-	docker run --userns=host -v /proc:/chroot/proc:ro -e http_proxy=${http_proxy} -v $(basename $@):/chroot -it --rm $(basename $@) chroot /chroot /bin/bash -c \
+	docker run --userns=host -v /proc:/chroot/proc:ro -e http_proxy=${http_proxy} -v $(basename $@):/chroot -i${TERMINAL} --rm $(basename $@) chroot /chroot /bin/bash -c \
 	'set -eux; apt-get update; apt-get install -y $($(basename $@)_packages_core);'
-	docker run --userns=host -e http_proxy=${http_proxy} -v $(basename $@):/chroot -it --rm $(basename $@) chroot /chroot /bin/bash -c \
+	docker run --userns=host -e http_proxy=${http_proxy} -v $(basename $@):/chroot -i${TERMINAL} --rm $(basename $@) chroot /chroot /bin/bash -c \
 	'apt-get install --no-install-recommends -y $($(basename $@)_packages_essential)'
 
 debootstrap.run:
-	docker run --userns=host -e http_proxy=${http_proxy} -v $(basename $@):/chroot -it --rm $(basename $@) chroot /chroot /bin/bash -i
+	docker run --userns=host -e http_proxy=${http_proxy} -v $(basename $@):/chroot -i${TERMINAL} --rm $(basename $@) chroot /chroot /bin/bash -i
 
 debootstrap.overlay_run:
-	docker run --userns=host -e http_proxy=${http_proxy} -v $(basename $@).overlay:/chroot -it --rm $(basename $@) chroot /chroot /bin/bash -i
+	docker run --userns=host -e http_proxy=${http_proxy} -v $(basename $@).overlay:/chroot -i${TERMINAL} --rm $(basename $@) chroot /chroot /bin/bash -i
 
 debootstrap.docker:
 	cat docker.sh | docker run --userns=host -e http_proxy=${http_proxy} -v $(basename $@).overlay:/chroot -i --rm $(basename $@) bash -c \
@@ -78,28 +88,34 @@ debootstrap_image=image.qcow
 
 debootstrap.image: debootstrap.container
 	truncate --size=0 touch $($(basename $@)_image)
-	docker run --userns=host -v $(shell pwd)/$($(basename $@)_image):/$($(basename $@)_image) -v $(basename $@).overlay:/chroot --rm -it $(basename $@) bash -c \
+	docker run --userns=host -v $(shell pwd)/$($(basename $@)_image):/$($(basename $@)_image) -v $(basename $@).overlay:/chroot --rm -i${TERMINAL} $(basename $@) bash -c \
 	'set -eux; env LIBGUESTFS_DEBUG=0 LIBGUESTFS_TRACE=0 virt-make-fs --format=qcow2 --size=2G --type=ext3 /chroot /$($(basename $@)_image)'
 
 debootstrap.qemu:
-	docker run --userns=host -v /boot:/boot:ro -v $(shell pwd)/$($(basename $@)_image):/$($(basename $@)_image) --rm -it $(basename $@) bash -c \
+	docker run --userns=host -v /boot:/boot:ro -v $(shell pwd)/$($(basename $@)_image):/$($(basename $@)_image) --rm -i${TERMINAL} $(basename $@) bash -c \
 	'set -eux;qemu-system-x86_64 -curses -append "root=/dev/sda systemd.log_target=kmsg systemd.log_level=debug" -kernel /boot/vmlinuz* -initrd /boot/initrd.* -hda /$($(basename $@)_image) -m 1024 -net user'
 	#'set -eux;qemu-system-x86_64 -nographic -append "root=/dev/sda console=ttyS0" -kernel /boot/vmlinuz* -initrd /boot/initrd.* -hda /$($(basename $@)_image) -m 1024 -net user'
 
 debootstrap.volume:
 	-docker volume rm $(basename $@)
 	docker volume create --driver local --opt type=bind --opt o=bind --opt device=${VOLUME_DIR}/$(basename $@) $(basename $@)
-	docker run --rm -it --userns=host -v ${basename $@}:/vol alpine sh -ceux 'cd /vol && find . -maxdepth 1 ! -path . -print0| xargs --no-run-if-empty -0 rm -rf'
+	docker run --rm -i${TERMINAL} --userns=host -v ${basename $@}:/vol alpine sh -ceux 'cd /vol && find . -maxdepth 1 ! -path . -print0| xargs --no-run-if-empty -0 rm -rf'
 
 debootstrap.volume_overlay:
 	-docker volume rm $(basename $@).overlay
-	docker run --rm -it --userns=host -v ${VOLUME_DIR}/$(basename $@).overlay:/vol alpine sh -ceux 'cd /vol && find . -maxdepth 1 ! -path . -print0| xargs --no-run-if-empty -0 rm -rf'
-	docker run --rm -it --userns=host -v ${VOLUME_DIR}/$(basename $@).workdir:/vol alpine sh -ceux 'cd /vol && find . -maxdepth 1 ! -path . -print0| xargs --no-run-if-empty -0 rm -rf'
+	docker run --rm -i${TERMINAL} --userns=host -v ${VOLUME_DIR}/$(basename $@).overlay:/vol alpine sh -ceux 'cd /vol && find . -maxdepth 1 ! -path . -print0| xargs --no-run-if-empty -0 rm -rf'
+	docker run --rm -i${TERMINAL} --userns=host -v ${VOLUME_DIR}/$(basename $@).workdir:/vol alpine sh -ceux 'cd /vol && find . -maxdepth 1 ! -path . -print0| xargs --no-run-if-empty -0 rm -rf'
 	docker volume create --driver local --opt type=overlay \
 		--opt o='lowerdir=${VOLUME_DIR}/$(basename $@),upperdir=${VOLUME_DIR}/$(basename $@).overlay,workdir=${VOLUME_DIR}/$(basename $@).workdir' --opt device=overlay $(basename $@).overlay
 
 %.image:
-	docker build --build-arg userid=${UID} --build-arg groupid=${GID} --build-arg username=${USER} --build-arg HTTP_PROXY=${http_proxy} --build-arg UBUNTU_VER=18.04 -f Dockerfile-$(basename $@) -t $(basename $@) .
+	docker build ${DOCKER_BUILD_OPTS}\
+	 --build-arg userid=${UID} --build-arg groupid=${GID} --build-arg username=${USER}\
+	 ${proxy} --build-arg UBUNTU_VER=18.04 -f Dockerfile-$(basename $@) -t $(basename $@) .
+
+%.image_run:
+	docker run ${DOCKER_RUN_OPTS} --rm -i${TERMINAL} --user ${UID}:${GID} -v ${CURDIR} -w ${CURDIR} $(basename $@)
+
 
 gcloud.run: gcloud.image
 	docker run --rm -i${TERMINAL} -v ~/.ssh:/home/${USER}/.ssh -v ~/.config/gcloud:/home/${USER}/.config/gcloud $(basename $@) ${GCLOUD_CMD}
