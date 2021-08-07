@@ -173,14 +173,19 @@ pytorch.18_04.run:
 %.qemu_init:
 	${MAKE} -C docker_kvm kvm_image $(basename $@).init
 
-%.run_docker_test:
+%.run_docker_setup:
 	docker_kvm/kvm_ssh ssh sudo env $(if $(http_proxy), http_proxy=${http_proxy})\
-	 DOCKER_USER=${USER} bash -eux -o pipefail <docker.sh
+	 DOCKER_USER=${USER} PATH=/usr/bin:/usr/sbin:/bin:/sbin sh <docker.sh
 
-%.docker_test:
+%.docker_setup:
 	-${MAKE} -C docker_kvm $(basename $@).ssh.stop
 	${MAKE} -C docker_kvm $(basename $@).ssh.start
-	${MAKE} $(basename $@).run_docker_test
+	${MAKE} $(basename $@).run_docker_setup
+	${MAKE} -C docker_kvm $(basename $@).ssh.stop
+
+%.docker_test:
+	${MAKE} -C docker_kvm $(basename $@).ssh.start SSH_START_OPTS='--dryrun'
+	docker_kvm/kvm_ssh ssh sh -ceux "'sleep 5;docker run --rm alpine cat /etc/issue'"
 	${MAKE} -C docker_kvm $(basename $@).ssh.stop
 
 softether.image:

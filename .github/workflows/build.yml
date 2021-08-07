@@ -11,21 +11,69 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: [16.04, 18.04, 20.04]
-        os: [ubuntu]
+        os: [ubuntu,alpine]
+        version: [none]
+        exclude:
+          - version: none
+        include:
+          - os: ubuntu
+            version: 16.04
+          - os: ubuntu
+            version: 18.04
+          - os: ubuntu
+            version: 20.04
+          - os: alpine
+            version: 3.14
+          - os: alpine
+            version: 3.13
+          - os: alpine
+            version: 3.12
+          - os: alpine
+            version: 3.11
+          - os: alpine
+            version: '3.10'
+          - os: alpine
+            version: 3.9
     steps:
     - name: checkout
       uses: actions/checkout@v2
       with:
-        submodules: true
+        submodules: recursive
     - name: kvm.image
       run: |
         set -x
-        make -C docker_kvm kvm_image
-        make -C docker_kvm ${{ matrix.os }}-${{ matrix.version }}.init
-    - name: docker
+        image=$(make -C docker_kvm --no-print-directory image.print)
+        IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$GITHUB_REPOSITORY/$image
+        IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+        old_id=''
+        if docker pull $IMAGE_ID; then
+          old_id=$(docker image inspect $IMAGE_ID --format "{{.ID}}")
+        fi
+        make -C docker_kvm kvm_image DOCKER_BUILD_OPTS="--cache-from=$IMAGE_ID"
+        new_id=$(docker image inspect $image --format "{{.ID}}")
+        if [ "$old_id" != "$new_id" ]; then
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker tag $image $IMAGE_ID:latest
+          docker push $IMAGE_ID:latest || true
+          rm -rf ~/.docker
+        fi
+    - name: ubuntu.image
+      if: matrix.os == 'ubuntu'
+      run: make -C docker_kvm ${{ matrix.os }}-${{ matrix.version }}.init
+    - name: alpine.image
+      if: matrix.os == 'alpine'
       run: |
-        make USE_TAP=y ${{ matrix.os }}-${{ matrix.version }}.docker_test
+        sudo modprobe nbd max_part=0
+        make -C docker_kvm kvm_run CMD='./kvm.sh prepare'
+        make -C docker_kvm alpine-make-vm-image.image
+        make -C docker_kvm alpine-make-vm-image.image_run ALPINE_VERSION=${{ matrix.version }}
+    - name: docker-setup
+      run: make USE_TAP=y ${{ matrix.os }}-${{ matrix.version }}.docker_setup
+    - name: compact.image
+      if: matrix.os == 'alpine'
+      run: make -C docker_kvm/ kvm_run CMD='./compact-qcow.sh data/img/${{ matrix.os }}-${{ matrix.version }}-boot.img'
+    - name: docker-test
+      run: make ${{ matrix.os }}-${{ matrix.version }}.docker_test
   images:
     runs-on: ubuntu-latest
     steps:
