@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  docker:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -26,3 +26,16 @@ jobs:
     - name: docker
       run: |
         make USE_TAP=y ${{ matrix.os }}-${{ matrix.version }}.docker_test
+  images:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: make polipo.container
+    - run: make http_proxy="http://$(hostname -I|cut -d' ' -f1):8123" apt_cache.container
+    - run: make http_proxy="http://$(hostname -I|cut -d' ' -f1):8123" dnsmasq.image
+    - run: make http_proxy="http://$(hostname -I|cut -d' ' -f1):8123" debootstrap.init
+    - run: make http_proxy="http://$(hostname -I|cut -d' ' -f1):8123" gcloud.image
+    - run: make http_proxy="http://$(hostname -I|cut -d' ' -f1):8123" tensorflow.image
+    - run: make http_proxy="http://$(hostname -I|cut -d' ' -f1):8123" pytorch.image
+    - run: make http_proxy="http://$(hostname -I|cut -d' ' -f1):8123" softether.image
+    - run: make -C ceph http_proxy="http://$(hostname -I|cut -d' ' -f1):8123" ceph-admin.image

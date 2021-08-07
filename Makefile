@@ -6,10 +6,12 @@ USER:=$(shell id -un)
 WORKSPACE=$(shell pwd)
 TERMINAL:=$(shell test -t 0 && echo t)
 
+proxy=$(if ${http_proxy},--build-arg http_proxy=${http_proxy})
+
 apt_cache.container:
 	-docker kill $(basename $@)
 	-docker rm $(basename $@)
-	docker build -f Dockerfile-$(basename $@) -t $(basename $@) .
+	docker build ${proxy} -f Dockerfile-$(basename $@) -t $(basename $@) .
 	docker run -d -p 3142:3142 --name $(basename $@) -v $(basename $@):/var/cache/apt-cacher-ng $(basename $@)
 
 apt_cache.volume:
