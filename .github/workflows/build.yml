@@ -66,6 +66,7 @@ jobs:
         sudo modprobe nbd max_part=0
         make -C docker_kvm kvm_run CMD='./kvm.sh prepare'
         make -C docker_kvm alpine-make-vm-image.image
+        git -C docker_kvm/alpine-make-vm-image/ apply <docker_kvm/alpine/alpine_sync.patch
         make -C docker_kvm alpine-make-vm-image.image_run ALPINE_VERSION=${{ matrix.version }}
     - name: docker-setup
       run: make USE_TAP=y ${{ matrix.os }}-${{ matrix.version }}.docker_setup
