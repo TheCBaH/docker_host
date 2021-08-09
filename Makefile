@@ -18,7 +18,7 @@ apt_cache.volume:
 	-docker volume rm $(basename $@)
 	docker volume create --driver local --opt type=bind --opt o=bind --opt device=${VOLUME_DIR}/$(basename $@) $(basename $@)
 
-apt_cache.logs:
+%.logs:
 	docker logs $(basename $@)
 
 apt_cache.run:
@@ -33,19 +33,24 @@ apt_cache.stop:
 
 polipo.volume:
 	-docker volume rm $(basename $@)
+	mkdir -p ${VOLUME_DIR}/$(basename $@)
 	docker volume create --driver local --opt type=bind --opt o=bind --opt device=${VOLUME_DIR}/$(basename $@) $(basename $@)
 
-polipo.container: polipo.image
-	-docker stop $(basename $@)
-	-docker rm $(basename $@)
-	docker run -d --rm --init -p 8123:8123 --name $(basename $@) -v $(basename $@):/var/cache/$(basename $@) $(basename $@)
+polipo.image:
+	docker build ${DOCKER_BUILD_OPTS} ${proxy} --build-arg LOG_LEVEL=0x1FF\
+	 --build-arg userid=${UID} --build-arg groupid=${GID} --build-arg username=${USER}\
+	 -f Dockerfile-$(basename $@) -t $(basename $@) .
 
-polipo.logs:
-	docker exec -i${TERMINAL} $(basename $@) cat /var/log/polipo/polipo.log
+polipo.start: polipo.image
+	-${MAKE} $(basename $@).stop
+	docker run --detach --init -p 8123:8123 --name $(basename $@) -v $(basename $@):/var/cache/$(basename $@) $(basename $@)
 
+polipo.stop:
+	docker stop $(basename $@)
+	docker rm $(basename $@)
 
-dnsmasq.logs:
-	docker logs $(basename $@)
+polipo.stats: polipo.image
+	docker run --rm --name $(subst .,-,$@) -v $(basename $@):/var/cache/$(basename $@) --entrypoint '' $(basename $@) du -sh /var/cache/$(basename $@)
 
 dnsmasq.start: dnsmasq.image
 	docker run --detach --name $(basename $@) --rm -p 53:53/udp -v /etc/hosts:/etc/hosts.host:ro $(basename $@) dnsmasq --no-daemon  --no-resolv --no-hosts --addn-hosts /etc/hosts.host --domain-needed --server 8.8.8.8

@@ -1,9 +1,42 @@
-FROM debian:stable-slim
-RUN set -eux;\
-    apt-get update;\
-    apt-get install -y --no-install-recommends polipo;\
-    apt-get clean; rm -rf /var/lib/apt/lists/*;
+ARG OS_VER=latest
+FROM alpine:${OS_VER} as builder
+RUN set -eux\
+    ; apk --no-cache add\
+ bash\
+ curl\
+ gcc\
+ libc-dev\
+ make\
+ texinfo\
+    ; echo DONE
+ARG LOG_LEVEL=0x7
+RUN set -eux\
+    ; cd /tmp\
+    ; polipo="polipo-1.1.1.tar.gz"\
+    ; curl --show-error --silent --location --output $polipo https://github.com/jech/polipo/archive/refs/tags/$polipo\
+    ; tar -zxvf $polipo\
+    ; cd polipo-polipo-1.1.1\
+    ; sed -i 's/\(#define LOGGING_MAX\)\s.*$/\1 '${LOG_LEVEL}'/' log.h\
+    ; make -j4 all\
+    ; strip polipo\
+    ; make install\
+    ; cd /\
+    ; rm -rf /tmp/*\
+    ; printf "#!/bin/sh\nset -eux;\nexec polipo logLevel=${LOG_LEVEL} logFacility=user \$@\n" >/usr/local/bin/polipo.sh\
+    ; chmod +x /usr/local/bin/polipo.sh\
+    ; echo DONE
 
+FROM alpine:${OS_VER}
+COPY --from=builder /usr/local/bin/polipo* /usr/local/bin/
+COPY --from=builder /usr/share/polipo/www /usr/share/polipo/www
+ARG userid
+ARG groupid
+ARG username
+RUN set -eux\
+    ; addgroup -S -g $groupid $username\
+    ; adduser -G $username -u $userid -D $username\
+    ; echo DONE
 VOLUME      ["/var/cache/polipo"]
 EXPOSE 8123
-CMD polipo proxyAddress=:: disableIndexing=false
+USER ${username}
+CMD polipo.sh proxyAddress=0.0.0.0 disableIndexing=false

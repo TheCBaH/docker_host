@@ -79,12 +79,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - run: make polipo.container
-    - run: make http_proxy="http://$(hostname -I|cut -d' ' -f1):8123" apt_cache.container
-    - run: make http_proxy="http://$(hostname -I|cut -d' ' -f1):8123" dnsmasq.image
-    - run: make http_proxy="http://$(hostname -I|cut -d' ' -f1):8123" debootstrap.init
-    - run: make http_proxy="http://$(hostname -I|cut -d' ' -f1):8123" gcloud.image
-    - run: make http_proxy="http://$(hostname -I|cut -d' ' -f1):8123" tensorflow.image
-    - run: make http_proxy="http://$(hostname -I|cut -d' ' -f1):8123" pytorch.image
-    - run: make http_proxy="http://$(hostname -I|cut -d' ' -f1):8123" softether.image
-    - run: make -C ceph http_proxy="http://$(hostname -I|cut -d' ' -f1):8123" ceph-admin.image
+    - name: start-cache
+      run: |
+        set -x
+        make polipo.image
+        make VOLUME_DIR=$HOME polipo.volume
+        make polipo.start
+        echo "http_proxy=http://$(hostname -I|cut -d' ' -f1):8123" >> $GITHUB_ENV
+    - run: make apt_cache.container
+    - run: make polipo.logs
+    - run: make dnsmasq.image
+    - run: make debootstrap.init
+    - run: make gcloud.image
+    - run: make tensorflow.image
+    - run: make pytorch.image
+    - run: make softether.image
+    - run: make -C ceph ceph-admin.image
+    - name: stop-cache
+      run: |
+        set -x
+        make polipo.stats
+        make polipo.stop
