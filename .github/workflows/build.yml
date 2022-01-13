@@ -69,7 +69,7 @@ jobs:
         git -C docker_kvm/alpine-make-vm-image/ apply <docker_kvm/alpine/alpine_sync.patch
         make -C docker_kvm alpine-make-vm-image.image_run ALPINE_VERSION=${{ matrix.version }}
     - name: docker-setup
-      run: make USE_TAP=y ${{ matrix.os }}-${{ matrix.version }}.docker_setup
+      run: make ${{ matrix.os }}-${{ matrix.version }}.docker_setup
     - name: compact.image
       if: matrix.os == 'alpine'
       run: make -C docker_kvm/ kvm_run CMD='./compact-qcow.sh data/img/${{ matrix.os }}-${{ matrix.version }}-boot.img'

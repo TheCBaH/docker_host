@@ -179,13 +179,13 @@ pytorch.18_04.run:
 
 %.docker_setup:
 	-${MAKE} -C docker_kvm $(basename $@).ssh.stop
-	${MAKE} -C docker_kvm $(basename $@).ssh.start
+	${MAKE} -C docker_kvm $(basename $@).ssh.start USE_TAP=y NETWORK_OPTIONS.USER= PORTS=
 	${MAKE} $(basename $@).run_docker_setup
 	${MAKE} -C docker_kvm $(basename $@).ssh.stop
 
 %.docker_test:
-	${MAKE} -C docker_kvm $(basename $@).ssh.start SSH_START_OPTS='--dryrun'
-	docker_kvm/kvm_ssh ssh sh -ceux "'sleep 5;docker run --rm alpine cat /etc/issue'"
+	${MAKE} -C docker_kvm $(basename $@).ssh.start SSH_START_OPTS='--dryrun --sealed' NETWORK_OPTIONS.USER= PORTS=
+	${MAKE} -C docker_kvm $(basename $@).ssh.connect SSH_CONNECT_CMD="--sealed ssh sh -ceux \"'sleep 5;docker run --rm alpine cat /etc/issue'\""
 	${MAKE} -C docker_kvm $(basename $@).ssh.stop
 
 softether.image:
