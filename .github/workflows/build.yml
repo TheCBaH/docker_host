@@ -90,9 +90,21 @@ jobs:
         make polipo.image
         make VOLUME_DIR=$HOME polipo.volume
         make polipo.start
-        echo "http_proxy=http://$(hostname -I|cut -d' ' -f1):8123" >> $GITHUB_ENV
-    - run: make apt_cache.start
-    - run: make polipo.logs
+        http_proxy=$(make --silent polipo.http_proxy)
+        test -n "$http_proxy"
+        echo "http_proxy=$http_proxy" >> $GITHUB_ENV
+    - name: apt_cache
+      run: |
+        set -x
+        make apt_cache.start
+        env http_proxy=$(make --silent apt_cache.http_proxy) make apt_cache.image
+        make apt_cache.cache_stats
+        make apt_cache.stop
+    - name: polipo_stats
+      run: |
+        set -x
+        make polipo.logs
+        make polipo.cache_stats
     - run: make dnsmasq.image
     - run: make debootstrap.init
     - run: make gcloud.image
@@ -103,5 +115,5 @@ jobs:
     - name: stop-cache
       run: |
         set -x
-        make polipo.stats
         make polipo.stop
+        make polipo.cache_stats

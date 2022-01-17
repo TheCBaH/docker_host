@@ -15,11 +15,19 @@ name_base=$(call name,$(basename $@))
 proxy=$(if ${http_proxy},--build-arg http_proxy=${http_proxy})
 
 apt_cache.container:
-	docker run -d -p 3142:3142 --name $(name_base) -v ${name_base}:/var/cache/apt-cacher-ng ${image_base}
+	docker run --detach --init --publish-all --name $(name_base) -v ${name_base}:/var/cache/apt-cacher-ng ${image_base}
 
 apt_cache.start: apt_cache.image apt_cache.volume
 	-${MAKE} $(basename $@).stop
 	${MAKE} $(basename $@).container
+
+%.http_proxy:
+	set -eux;\
+	 port=$$(docker container port ${name_base} | cut -d: -f 2);\
+	 ip=$$(hostname -I|cut -d' ' -f1);\
+	 test -n "$$port";\
+	 test -n "$$ip";\
+	 echo "http://$$ip:$$port"
 
 %.logs:
 	docker logs ${name_base}
@@ -48,14 +56,14 @@ polipo.start: polipo.image polipo.volume
 	${MAKE} $(basename $@).container
 
 polipo.container:
-	docker run --detach --init -p 8123:8123 --name ${name_base} -v ${name_base}:/var/cache/$(basename $@) ${image_base}
+	docker run --detach --publish-all --name ${name_base} -v ${name_base}:/var/cache/$(basename $@) ${image_base}
 
 polipo.stop:
 	docker stop ${name_base}
 	docker rm ${name_base}
 
-polipo.stats:
-	docker run --rm --name $(call name,$@) -v ${name_base}:/var/cache/$(basename $@) --entrypoint '' ${image_base} du -sh /var/cache/$(basename $@)
+%.cache_stats:
+	docker run --rm --name $(call name,$@) -v ${name_base}:/var/cache/$(basename $@) --entrypoint '' ${image_base} du -h -d 1 '/var/cache/$(basename $@)/'
 
 dnsmasq.start: dnsmasq.image
 	docker run --detach ${name_base} --rm -p 53:53/udp -v /etc/hosts:/etc/hosts.host:ro ${name_base} dnsmasq --no-daemon  --no-resolv --no-hosts --addn-hosts /etc/hosts.host --domain-needed --server 8.8.8.8
