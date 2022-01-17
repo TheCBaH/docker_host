@@ -134,12 +134,12 @@ aws.run: aws.image
 	docker run --rm -i${TERMINAL} -v ~/.aws:/home/${USER}/.aws $(basename $@)
 
 tensorflow.image:
-	#cd tensorflow;docker build --build-arg userid=${UID} --build-arg groupid=${GID} --build-arg username=${USER} -f devel-cpu.Dockerfile -t $(basename $@) .
-	docker build ${proxy} --build-arg userid=${UID} --build-arg groupid=${GID} --build-arg username=${USER} -f tensorflow/Dockerfile-tensorflow-rocm -t $(basename $@) .
+	docker build ${proxy} --build-arg userid=${UID} --build-arg groupid=${GID} --build-arg username=${USER} -f tensorflow/devel-cpu.Dockerfile -t $(basename $@):cpu .
+	#docker build ${proxy} --build-arg userid=${UID} --build-arg groupid=${GID} --build-arg username=${USER} -f tensorflow/Dockerfile-tensorflow-rocm -t $(basename $@):rocm .
 
 tensorflow.run:
-	#docker run -i${TERMINAL} --rm -u ${UID}:${GID} -e HOME=${HOME} -e USER=${USER} -v ${HOME}:${HOME} ${basename $@}
-	docker run --cap-add=SYS_PTRACE  -i${TERMINAL}  --rm --device=/dev/kfd --device=/dev/dri --group-add sudo --group-add 34 -u ${UID}:${GID} -e HOME=${HOME} -e USER=${USER} -v ${HOME}:${HOME} ${basename $@}
+	#docker run -i${TERMINAL} --rm -u ${UID}:${GID} -e HOME=${HOME} -e USER=${USER} -v ${HOME}:${HOME} ${basename $@}:cpu
+	docker run --cap-add=SYS_PTRACE  -i${TERMINAL}  --rm --device=/dev/kfd --device=/dev/dri --group-add sudo --group-add 34 -u ${UID}:${GID} -e HOME=${HOME} -e USER=${USER} -v ${HOME}:${HOME} ${basename $@}:rocm
 
 TEHSORFLOW_TAG?=1.13.1
 tensorflow.dockerhub:
