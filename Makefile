@@ -179,6 +179,10 @@ pytorch.18_04.run:
 	${MAKE} -C docker_kvm kvm_image $(basename $@).init
 
 %.run_docker_setup:
+	docker_kvm/kvm_ssh ssh $(addprefix -o SendEnv=, http_proxy DOCKER_CONFIG_JSON) sudo --preserve-env=http_proxy,DOCKER_CONFIG_JSON env\
+	 DOCKER_USER=${USER} PATH=/usr/bin:/usr/sbin:/bin:/sbin sh <docker.sh
+
+ubuntu-16.04.run_docker_setup:
 	docker_kvm/kvm_ssh ssh sudo env $(if $(http_proxy), http_proxy=${http_proxy})\
 	 DOCKER_USER=${USER} PATH=/usr/bin:/usr/sbin:/bin:/sbin sh <docker.sh
 

@@ -33,6 +33,16 @@ do_user() {
   if [ -n "${DOCKER_USER:-}" ]; then
     addgroup ${DOCKER_USER} docker
   fi
+  if [ -n "${DOCKER_CONFIG_JSON:-}" ]; then
+    base64 -d <<_EOF_ | tar -zxv --no-same-owner -C ~
+$DOCKER_CONFIG_JSON
+_EOF_
+    if [ -n "${DOCKER_USER:-}" ]; then
+      base64 -d <<_EOF_ | runuser -u ${DOCKER_USER} -- sh -c 'exec tar -zxv --no-same-owner -C ~'
+$DOCKER_CONFIG_JSON
+_EOF_
+    fi
+  fi
 }
 
 do_docker_data () {
