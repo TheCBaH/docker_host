@@ -1,4 +1,4 @@
-name: CI
+name: ci
 
 on:
   push:
@@ -8,6 +8,8 @@ on:
 jobs:
   docker:
     runs-on: ubuntu-latest
+    env:
+      DOCKER_NAMESPACE: github_${{ github.workflow }}_${{ github.job }}
     strategy:
       fail-fast: false
       matrix:
@@ -77,6 +79,9 @@ jobs:
       run: make ${{ matrix.os }}-${{ matrix.version }}.docker_test
   images:
     runs-on: ubuntu-latest
+    env:
+      DOCKER_NAMESPACE: github_${{ github.workflow }}_${{ github.job }}
+      VOLUME_DIR: /tmp/
     steps:
     - uses: actions/checkout@v2
     - name: start-cache
@@ -86,7 +91,7 @@ jobs:
         make VOLUME_DIR=$HOME polipo.volume
         make polipo.start
         echo "http_proxy=http://$(hostname -I|cut -d' ' -f1):8123" >> $GITHUB_ENV
-    - run: make apt_cache.container
+    - run: make apt_cache.start
     - run: make polipo.logs
     - run: make dnsmasq.image
     - run: make debootstrap.init
