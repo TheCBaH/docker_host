@@ -1,16 +1,18 @@
 ARG OS_VER=latest
 FROM alpine:${OS_VER} as builder
+ARG LOG_LEVEL=0x07
 RUN set -eux\
-    ; apk --no-cache add\
- bash\
+    ; if [ -n "${http_proxy:-}" ]; then\
+      sed -i 's/https:/http:/' /etc/apk/repositories\
+    ; fi \
+    ; packages="\
  curl\
  gcc\
  libc-dev\
  make\
  texinfo\
-    ; echo DONE
-ARG LOG_LEVEL=0x7
-RUN set -eux\
+  "\
+    ; apk --no-cache add $packages\
     ; cd /tmp\
     ; polipo="polipo-1.1.1.tar.gz"\
     ; curl --show-error --silent --location --output $polipo https://github.com/jech/polipo/archive/refs/tags/$polipo\
@@ -22,6 +24,7 @@ RUN set -eux\
     ; make install\
     ; cd /\
     ; rm -rf /tmp/*\
+    ; apk del $packages\
     ; printf "#!/bin/sh\nset -eux;\nexec polipo logLevel=${LOG_LEVEL} logFacility=user \$@\n" >/usr/local/bin/polipo.sh\
     ; chmod +x /usr/local/bin/polipo.sh\
     ; echo DONE

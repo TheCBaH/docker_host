@@ -84,6 +84,8 @@ jobs:
       VOLUME_DIR: /tmp/
     steps:
     - uses: actions/checkout@v2
+      with:
+        submodules: recursive
     - name: start-cache
       run: |
         set -x
@@ -103,8 +105,8 @@ jobs:
     - name: polipo_stats
       run: |
         set -x
+        make -C docker_kvm alpine-make-vm-image.image
         make polipo.logs
-        make polipo.cache_stats
     - run: make dnsmasq.image
     - run: make debootstrap.init
     - run: make gcloud.image
