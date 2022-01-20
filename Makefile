@@ -56,7 +56,7 @@ polipo.start: polipo.image polipo.volume
 	${MAKE} $(basename $@).container
 
 polipo.container:
-	docker run --detach --publish-all --name ${name_base} -v ${name_base}:/var/cache/$(basename $@) ${image_base}
+	docker run --detach --publish-all --name ${name_base} --user ${UID}:${GID} -v ${name_base}:/var/cache/$(basename $@) ${image_base}
 
 polipo.stop:
 	docker stop ${name_base}

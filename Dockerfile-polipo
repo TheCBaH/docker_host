@@ -32,14 +32,6 @@ RUN set -eux\
 FROM alpine:${OS_VER}
 COPY --from=builder /usr/local/bin/polipo* /usr/local/bin/
 COPY --from=builder /usr/share/polipo/www /usr/share/polipo/www
-ARG userid
-ARG groupid
-ARG username
-RUN set -eux\
-    ; addgroup -S -g $groupid $username\
-    ; adduser -G $username -u $userid -D $username\
-    ; echo DONE
 VOLUME      ["/var/cache/polipo"]
 EXPOSE 8123
-USER ${username}
 CMD polipo.sh proxyAddress=0.0.0.0 disableIndexing=false
