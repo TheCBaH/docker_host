@@ -202,6 +202,7 @@ ubuntu-16.04.run_docker_setup:
 
 %.docker_setup:
 	-${MAKE} -C docker_kvm $(basename $@).ssh.stop
+	$(if $(filter ubuntu%,$@),${MAKE} -C docker_kvm $(basename $@).ubuntu_cleanup)
 	${MAKE} -C docker_kvm $(basename $@).ssh.start USE_TAP=y NETWORK_OPTIONS.USER= PORTS=
 	sleep 5
 	${MAKE} -C docker_kvm $(basename $@).ssh.log

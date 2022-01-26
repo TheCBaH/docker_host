@@ -61,7 +61,7 @@ jobs:
         fi
     - name: ubuntu.image
       if: matrix.os == 'ubuntu'
-      run: make -C docker_kvm ${{ matrix.os }}-${{ matrix.version }}.init
+      run: make -C docker_kvm ${{ matrix.os }}-${{ matrix.version }}.minimal_init
     - name: alpine.image
       if: matrix.os == 'alpine'
       run: |
