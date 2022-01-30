@@ -1,0 +1,27 @@
+ARG UBUNTU_VER
+FROM ubuntu:${UBUNTU_VER}
+RUN set -euxp;\
+    apt-get update;\
+    env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends\
+ ca-certificates\
+ iproute2\
+ make\
+ wget\
+    ; apt-get clean; rm -rf /var/lib/apt/lists/*;\
+    echo DONE
+ARG userid
+ARG groupid
+ARG username
+ARG VOLUME_DIR
+RUN set -eux; \
+    groupadd -g $groupid $username; \
+    useradd -m -u $userid -g $groupid --groups 0 $username; \
+    usermod -aG sudo $username; \
+    mkdir -p ${VOLUME_DIR};chown $username ${VOLUME_DIR};\
+    echo DONE
+RUN set -eux; \
+    cd /tmp;docker=docker-20.10.9.tgz;wget --output-document $docker --no-show-progress https://download.docker.com/linux/static/stable/x86_64/$docker;\
+    dest=/usr/local/bin;\
+    tar -zxvf - -C $dest --strip-components=1 docker/docker <$docker;\
+    ls -alh $dest; rm -f $docker;\
+    echo DONE

@@ -24,7 +24,11 @@ apt_cache.start: apt_cache.image apt_cache.volume
 %.http_proxy:
 	set -eux;\
 	 port=$$(docker container port ${name_base} | cut -d: -f 2);\
-	 ip=$$(hostname -I|cut -d' ' -f1);\
+	 if [ -f /.dockerenv ]; then\
+	  ip=$$(ip -4 route show default | cut -d' ' -f3);\
+	 else\
+	  ip=$$(hostname -I|cut -d' ' -f1);\
+	 fi;\
 	 test -n "$$port";\
 	 test -n "$$ip";\
 	 echo "http://$$ip:$$port"
@@ -72,6 +76,26 @@ dnsmasq.stop:
 	-docker stop $(basename $@)
 
 dnsmasq.restart: dnsmasq.stop dnsmasq.start
+
+docker-cli.image: DOCKER_BUILD_OPTS=--build-arg VOLUME_DIR=${VOLUME_DIR}
+
+docker-cli.start: docker-cli.image
+	docker run --detach --name ${name_base} --user ${USER} --rm --init\
+	 --env DOCKER_NAMESPACE=${DOCKER_NAMESPACE}-$(basename $@) --env http_proxy\
+	 --workdir ${CURDIR} --env VOLUME_DIR=${VOLUME_DIR}\
+	 -v ${CURDIR}:${CURDIR}:ro -v /var/run/docker.sock:/var/run/docker.sock ${image_base} sleep infinity
+
+docker-cli.run: docker-cli.image
+	docker run -i${TERMINAL} --name ${name_base} --user ${USER} --rm --init\
+	 --env DOCKER_NAMESPACE=${DOCKER_NAMESPACE}-$(basename $@) --env http_proxy\
+	 --workdir ${CURDIR} --env VOLUME_DIR=${VOLUME_DIR}\
+	 -v ${CURDIR}:${CURDIR}:ro -v /var/run/docker.sock:/var/run/docker.sock ${image_base} ${CMD}
+
+docker-cli.stop:
+	docker stop ${name_base}
+
+docker-cli.exec:
+	docker exec -i${TERMINAL} ${name_base} ${CMD}
 
 debootstrap_packages_essential=$(shell cat essential.lst)
 debootstrap_packages_core=$(shell cat core-packages.lst)

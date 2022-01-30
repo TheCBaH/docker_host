@@ -119,3 +119,17 @@ jobs:
         set -x
         make polipo.stop
         make polipo.cache_stats
+  proxy:
+    runs-on: ubuntu-latest
+    env:
+      VOLUME_DIR: /tmp/
+    steps:
+    - uses: actions/checkout@v2
+    - name: proxy
+      run: ./proxy-test.sh
+    - name: proxy-in-docker
+      run: |
+        set -x
+        make docker-cli.start
+        make docker-cli.exec CMD=./proxy-test.sh
+        make docker-cli.stop
