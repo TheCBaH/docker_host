@@ -100,5 +100,7 @@ do_user
 do_docker_data
 do_os_$OS
 docker --version
-docker run --rm alpine cat /etc/issue
-docker system prune -af
+if [ "${DOCKER_DISABLE_TEST:-}" != 'yes' ]; then
+  docker run --rm alpine cat /etc/issue
+  docker system prune -af
+fi
