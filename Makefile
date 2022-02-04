@@ -52,6 +52,7 @@ apt_cache.stop:
 
 polipo.image:
 	docker build ${DOCKER_BUILD_OPTS} ${proxy} --build-arg LOG_LEVEL=0x1FF\
+	 --build-arg OS_VER=3.13\
 	 --build-arg userid=${UID} --build-arg groupid=${GID} --build-arg username=${USER}\
 	 -f Dockerfile-$(basename $@) -t ${image_base} .
 
