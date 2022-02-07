@@ -10,10 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DOCKER_NAMESPACE: github_${{ github.workflow }}_${{ github.job }}
+      KVM_DISABLE: 'yes'
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu,alpine]
+        os: [ubuntu, alpine, alpine-uefi]
         version: [none]
         exclude:
           - version: none
@@ -35,6 +36,18 @@ jobs:
           - os: alpine
             version: '3.10'
           - os: alpine
+            version: 3.9
+          - os: alpine-uefi
+            version: 3.14
+          - os: alpine-uefi
+            version: 3.13
+          - os: alpine-uefi
+            version: 3.12
+          - os: alpine-uefi
+            version: 3.11
+          - os: alpine-uefi
+            version: '3.10'
+          - os: alpine-uefi
             version: 3.9
     steps:
     - name: checkout
@@ -65,11 +78,19 @@ jobs:
     - name: alpine.image
       if: matrix.os == 'alpine'
       run: |
+        set -x
         sudo modprobe nbd max_part=0
         make -C docker_kvm kvm_run CMD='./kvm.sh prepare'
         make -C docker_kvm alpine-make-vm-image.image
         git -C docker_kvm/alpine-make-vm-image/ apply <docker_kvm/alpine/alpine_sync.patch
         make -C docker_kvm alpine-make-vm-image.image_run ALPINE_VERSION=${{ matrix.version }}
+    - name: alpine-uefi.image
+      if: matrix.os == 'alpine-uefi'
+      run: |
+        set -x
+        make -C docker_kvm kvm_run CMD='./kvm.sh prepare'
+        make -C docker_kvm ${{ matrix.os }}.img ALPINE_VERSION=${{ matrix.version }}
+        echo make -C docker_kvm ${{ matrix.os }}-${{ matrix.version }}.cleanup
     - name: docker-setup
       run: make ${{ matrix.os }}-${{ matrix.version }}.docker_setup
     - name: compact.image
@@ -77,6 +98,9 @@ jobs:
       run: make -C docker_kvm/ kvm_run CMD='./compact-qcow.sh data/img/${{ matrix.os }}-${{ matrix.version }}-boot.img'
     - name: docker-test
       run: make ${{ matrix.os }}-${{ matrix.version }}.docker_test
+    - name: image-vhdx
+      if: matrix.os == 'alpine-uefi'
+      run: make -C docker_kvm alpine-uefi.vhdx ALPINE_VERSION="${{ matrix.version }}"
   images:
     runs-on: ubuntu-latest
     env:
