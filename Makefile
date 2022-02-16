@@ -14,6 +14,11 @@ name_base=$(call name,$(basename $@))
 
 proxy=$(if ${http_proxy},--build-arg http_proxy=${http_proxy})
 
+.SUFFIXES:
+
+all:
+	echo "Not supported" >&2
+
 apt_cache.container:
 	docker run --detach --init --publish-all --name $(name_base) -v ${name_base}:/var/cache/apt-cacher-ng ${image_base}
 
@@ -252,3 +257,5 @@ vpn_server.config:
 softether.run: vpn_server.config
 	docker run -i${TERMINAL} --rm ${name_base} --userns=host -v $(realpath $<):/usr/libexec/softether/vpnserver/vpn_server.config\
 	 --net host --cap-add NET_ADMIN ${image_name}
+
+debian-upgrade: debian-upgrade.image

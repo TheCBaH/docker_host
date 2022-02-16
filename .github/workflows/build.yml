@@ -157,3 +157,38 @@ jobs:
         make docker-cli.start
         make docker-cli.exec CMD=./proxy-test.sh
         make docker-cli.stop
+  wsl:
+    runs-on: windows-latest
+    steps:
+    - uses: Vampire/setup-wsl@v2
+      with:
+        distribution: Debian
+    - name: Update
+      shell: wsl-bash -u root {0}
+      run: pwd
+    - shell: wsl-bash -u root {0}
+      run: id
+    - shell: wsl-bash -u root {0}
+      run: cat /etc/issue
+  wsl-manual:
+    if: false
+    runs-on: windows-latest
+    steps:
+    - name: Install
+      run: |
+        Invoke-WebRequest -Uri https://aka.ms/wsl-debian-gnulinux -OutFile ./Debian.appx -UseBasicParsing
+        Rename-Item .\Debian.appx .\Debian.zip
+        Expand-Archive .\Debian.zip .\Debian
+        cd .\Debian
+        Rename-Item ./DistroLauncher-Appx_1.12.1.0_x64.appx ./Debian.zip
+        Expand-Archive .\Debian.zip .\Debian
+        cd .\Debian
+        .\debian.exe install --root
+        .\debian.exe run cat /etc/issue
+  debian-upgrade:
+    if: false
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+    - run: make debian-upgrade

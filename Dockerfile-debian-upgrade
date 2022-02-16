@@ -1,0 +1,5 @@
+FROM debian:stretch-slim
+COPY wsl/debian-upgrade.sh .
+RUN ./debian-upgrade.sh
+COPY wsl/debian-nvidia.sh .
+RUN env DOCKER=y ./debian-nvidia.sh

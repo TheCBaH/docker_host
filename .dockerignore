@@ -1,2 +1,4 @@
 **
 !entrypoint.sh
+!wsl/debian-upgrade.sh
+!wsl/debian-nvidia.sh
