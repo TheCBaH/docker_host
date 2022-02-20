@@ -10,6 +10,10 @@ else
   exit 1
 fi
 
+if [ -z "${DOCKER_USER:-}" -a -n "${SUDO_USER:-}" ]; then
+  DOCKER_USER="$SUDO_USER"
+fi
+
 do_user() {
   DOCKER_ID=${DOCKER_ID:-9}
   old_user=$(getent passwd 9|cut -d: -f1)
