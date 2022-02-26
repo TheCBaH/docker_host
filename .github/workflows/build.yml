@@ -173,8 +173,10 @@ jobs:
   wsl-manual:
     if: false
     runs-on: windows-latest
+    timeout-minutes: 15
     steps:
-    - name: Install
+    - uses: actions/checkout@v2
+    - name: Debian
       run: |
         Invoke-WebRequest -Uri https://aka.ms/wsl-debian-gnulinux -OutFile ./Debian.appx -UseBasicParsing
         Rename-Item .\Debian.appx .\Debian.zip
@@ -185,6 +187,14 @@ jobs:
         cd .\Debian
         .\debian.exe install --root
         .\debian.exe run cat /etc/issue
+    - run: pip install requests
+    - name: Alpine
+      shell: cmd
+      run: |
+        python .\wsl\alpine.py
+        set
+        .\Alpine.exe --user root <nul
+        .\wsl\dataset.bat
   debian-upgrade:
     if: false
     runs-on: ubuntu-latest
