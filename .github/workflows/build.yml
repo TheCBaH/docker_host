@@ -137,6 +137,7 @@ jobs:
     - run: make tensorflow.image
     - run: make pytorch.image
     - run: make softether.image
+    - run: make opam.image
     - run: make -C ceph ceph-admin.image
     - name: stop-cache
       run: |

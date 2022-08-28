@@ -1,0 +1,96 @@
+ARG UBUNTU_VER
+FROM ubuntu:${UBUNTU_VER}
+RUN set -eux;\
+ apt-get update; env DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
+ aspcud \
+ autoconf \
+ automake \
+ build-essential \
+ bzip2 \
+ ca-certificates \
+ cmake \
+ curl \
+ git-core \
+ libc6-dev \
+ ocaml-nox \
+ pkg-config \
+ sudo \
+ unzip \
+ xz-utils \
+ ;\
+ env DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y software-properties-common;\
+ add-apt-repository ppa:avsm/ppa;\
+ apt install --no-install-recommends -y opam;\
+ apt remove --auto-remove -y software-properties-common;\
+ apt-get clean;rm -rf /var/lib/apt/lists/*;\
+ echo bubblewrap; \
+ echo DONE
+
+ARG userid
+ARG groupid
+ARG username
+ARG UI=n
+RUN \
+  set -eux; \
+  groupadd -g $groupid $username; \
+  useradd -m -u $userid -g $groupid $username; \
+  usermod -aG sudo $username; \
+  echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers; \
+  echo $username >/root/username; \
+  chgrp $groupid /root; \
+  chmod g+rx /root; \
+  mkdir /src;\
+  chown $username /src;\
+  if [ _${UI} != _n ]; then\
+    apt-get update; env DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
+      elpa-auto-complete \
+      elpa-evil \
+      emacs \
+      less \
+      ocaml-mode \
+      vim-nox \
+      xterm \
+  ; fi ; \
+  echo DONE
+
+ARG UBUNTU_VER
+USER ${username}
+RUN set -exu;\
+  cd src;\
+  which ocaml;ocaml -version;\
+  which opam;opam --version;\
+  if [ _${UBUNTU_VER} = _16.04 ]; then \
+   curl -o /tmp/install.sh -sL https://raw.githubusercontent.com/ocaml/opam/master/shell/install.sh;\
+   (echo;)|sh /tmp/install.sh;\
+   which opam;opam --version;\
+   rm /tmp/*;fi;\
+  opam init --disable-sandboxing -a;\
+  opam switch create 4.12.1;\
+  eval `opam config env`;\
+  which ocaml;ocaml -version;\
+  opam install -y dune;\
+  if [ _${UI} != _n ]; then \
+    opam install -y tuareg; \
+    opam install -y merlin; \
+    mkdir -p ~/.emacs.d;\
+    echo "(require 'evil)" >>~/.emacs.d/init.el;\
+    echo "(evil-mode 1)" >>~/.emacs.d/init.el;\
+    echo '(load "/home/'${username}'/.opam/default/share/emacs/site-lisp/tuareg-site-file")' >>~/.emacs.d/init.el;\
+    printf \
+ '(let ((opam-share (ignore-errors (car (process-lines "opam" "config" "var" "share")))))\n\
+   (when (and opam-share (file-directory-p opam-share))\n\
+    ;; Register Merlin\n\
+    (add-to-list '\''load-path (expand-file-name "emacs/site-lisp" opam-share))\n\
+    (autoload '\''merlin-mode "merlin" nil t nil)\n\
+    ;; Automatically start it in OCaml buffers\n\
+    (add-hook '\''tuareg-mode-hook '\''merlin-mode t)\n\
+    (add-hook '\''caml-mode-hook '\''merlin-mode t)\n\
+    ;; Use opam switch to lookup ocamlmerlin binary\n\
+    (setq merlin-command '\''opam)))\n'>>~/.emacs.d/init.el;\
+  fi; \
+  echo DONE
+RUN set -exu;\
+  eval $(opam config env);\
+  which ocaml;ocaml -version;\
+  echo 'eval $(opam config env)' >>~/.bashrc;\
+  echo DONE
