@@ -3,8 +3,8 @@ UID:=$(shell expr $$(id -u) - ${ID_OFFSET})
 GID:=$(shell expr $$(id -g) - ${ID_OFFSET})
 USER:=$(shell id -un)
 TERMINAL:=$(shell test -t 0 && echo t)
-CEPH_RELEASE=octopus
-CEPH_ADMIN_RELEASE=octopus
+CEPH_RELEASE=quincy
+CEPH_ADMIN_RELEASE=quincy
 CEPH_USER=${USER}_ceph
 
 all:

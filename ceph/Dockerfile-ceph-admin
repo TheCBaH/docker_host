@@ -1,5 +1,5 @@
 FROM debian
-ARG CEPH_RELEASE=nautilus
+ARG CEPH_RELEASE=quincy
 # https://docs.ceph.com/docs/master/rados/deployment/preflight-checklist/#install-ceph-deploy
 RUN set -eux;\
     apt-get update;\
