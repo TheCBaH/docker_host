@@ -51,7 +51,7 @@ jobs:
             version: 3.9
     steps:
     - name: checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         submodules: recursive
     - name: kvm.image
@@ -107,7 +107,7 @@ jobs:
       DOCKER_NAMESPACE: github_${{ github.workflow }}_${{ github.job }}
       VOLUME_DIR: /tmp/
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: recursive
     - name: start-cache
@@ -150,7 +150,7 @@ jobs:
     env:
       VOLUME_DIR: /tmp/
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: proxy
       run: ./proxy-test.sh
     - name: proxy-in-docker
@@ -177,7 +177,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 15
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Debian
       run: |
         Invoke-WebRequest -Uri https://aka.ms/wsl-debian-gnulinux -OutFile ./Debian.appx -UseBasicParsing
@@ -202,5 +202,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - run: make debian-upgrade
