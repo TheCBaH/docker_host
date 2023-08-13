@@ -135,6 +135,7 @@ jobs:
     - run: make debootstrap.init
     - run: make gcloud.image
     - run: make tensorflow.image
+    - run: docker system prune --all --force
     - run: make pytorch.image
     - run: make softether.image
     - run: make opam.image
