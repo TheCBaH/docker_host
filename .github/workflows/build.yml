@@ -34,8 +34,6 @@ jobs:
           - os: alpine
             version: 3.14
           - os: alpine
-            version: 3.13
-          - os: alpine
             version: 3.12
           - os: alpine
             version: 3.11
