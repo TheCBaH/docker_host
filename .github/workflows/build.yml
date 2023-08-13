@@ -25,10 +25,14 @@ jobs:
             version: 18.04
           - os: ubuntu
             version: 20.04
+          - os: ubuntu
+            version: 22.04
+          - os: alpine
+            version: 3.17
+          - os: alpine
+            version: 3.16
           - os: alpine
             version: 3.14
-          - os: alpine
-            version: 3.13
           - os: alpine
             version: 3.12
           - os: alpine
@@ -37,6 +41,10 @@ jobs:
             version: '3.10'
           - os: alpine
             version: 3.9
+          - os: alpine-uefi
+            version: 3.17
+          - os: alpine-uefi
+            version: 3.16
           - os: alpine-uefi
             version: 3.14
           - os: alpine-uefi
